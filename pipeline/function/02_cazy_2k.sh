@@ -1,0 +1,31 @@
+#!/usr/bin/bash -l
+#SBATCH -p short -N 1 -n 1 -c 16 --mem 8gb --out logs/cazy_2k.%a.log
+
+CPU=2
+if [ ! -z $SLURM_CPUS_ON_NODE ]; then
+    CPU=$SLURM_CPUS_ON_NODE
+fi
+
+N=${SLURM_ARRAY_TASK_ID}
+if [ -z $N ]; then
+    N=$1
+    if [ -z $N ]; then
+        echo "need to provide a number by --array or cmdline"
+        exit
+    fi
+fi
+N=$(expr 2000 + $N)
+module load dbcanlight
+module load workspace/scratch
+
+INDIR=input
+OUTDIR=results/function/cazy/
+mkdir -p $OUTDIR
+
+INFILE=$(ls -U $INDIR | sed -n ${N}p)
+NAME=$(basename $INFILE .proteins.fa)
+mkdir -p $OUTDIR/$NAME
+time dbcanlight search -i $INDIR/$INFILE -m cazyme -o $OUTDIR/$NAME -t $CPU
+time dbcanlight search -i $INDIR/$INFILE -m sub -o $OUTDIR/$NAME -t $CPU
+#time dbcanlight search -i $INDIR/$INFILE -m diamond -o $OUTDIR/$NAME -t $CPU 
+dbcanlight conclude $OUTDIR/$NAME
