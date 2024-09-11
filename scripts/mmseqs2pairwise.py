@@ -80,59 +80,62 @@ def main():
     t5 = time.time()
     t4 = t5
     for line in args.input:
-        if line.startswith('#'): continue
+        if line.startswith('#'):
+            continue
         cluster = line.strip().split()
-        if len(cluster) != 2: continue
-        if args.debug:
-            if i % 1000000 == 0:
-                t6 = time.time()
-                print(f"Processing line {i} took {t6-t5} seconds; ClusterID is {clusterID}",file=sys.stderr)
-                t5 = t6
-            i+=1
-        for gene in cluster:
-            if db:
-                temp_species = db.get(gene.encode())
-                if not temp_species:
-                    print(f"Gene {gene} not found in species list",file=sys.stderr)
-                    continue
-            else:
-                if gene not in gene2species:
-                    print(f"Gene {gene} not found in species list",file=sys.stderr)
-                    continue
-        gene1 = cluster[0]
-        gene2 = cluster[1]
+        if len(cluster) != 2:
+            continue
+        if args.debug and i % 1000000 == 0:
+            t6 = time.time()
+            print(f"Processing line {i} took {t6-t5} seconds; ClusterID is {clusterID}", file=sys.stderr)
+            t5 = t6
+        i += 1
+        gene1, gene2 = cluster
+        if db:
+            temp_species1 = db.get(gene1.encode())
+            temp_species2 = db.get(gene2.encode())
+            if not temp_species1 or not temp_species2:
+                print(f"Gene {gene1} or {gene2} not found in species list", file=sys.stderr)
+                continue
+            species1 = temp_species1.decode()
+            species2 = temp_species2.decode()
+        else:
+            if gene1 not in gene2species or gene2 not in gene2species:
+                print(f"Gene {gene1} or {gene2} not found in species list", file=sys.stderr)
+                continue
+            species1 = gene2species[gene1]
+            species2 = gene2species[gene2]
         if gene1 != last_seq and last_seq != "":
             if len(last_cluster) > 1:
-                names = []
                 species_grouping = {}
                 for item in last_cluster:
-                    if db:
-                        species = db.get(item.encode()).decode()
-                    else:
-                        species = gene2species[item]
-                    
-                    if species not in species_grouping:
-                        species_grouping[species] = []
-                    species_grouping[species].append(item)                
-                
+                    if item != gene1 and item != gene2:
+                        species = db.get(item.encode()).decode() if db else gene2species[item]
+                        if species not in species_grouping:
+                            species_grouping[species] = []
+                        species_grouping[species].append(item)
                 for species1 in species_grouping:
                     if species1 not in pairwise:
-                        fh = gzip.open(f"{args.outdir}/{species1}_orthologs.tsv.gz",'wt')
+                        fh = gzip.open(f"{args.outdir}/{species1}_orthologs.tsv.gz", 'wt')
                         if fh:
-                            writer = csv.writer(fh,delimiter='\t',lineterminator=os.linesep)
-                            writer.writerow(['Cluster','Species',species1,'Orthologs'])
-                            pairwise[species1] = {'handle': fh, 'csv': writer }
+                            writer = csv.writer(fh, delimiter='\t', lineterminator=os.linesep)
+                            writer.writerow(['Cluster', 'Species', species1, 'Orthologs'])
+                            pairwise[species1] = {'handle': fh, 'csv': writer}
                         else:
-                            print(f"Could not open {args.outdir}/{species1}_orthologs.tsv",file=sys.stderr)
+                            print(f"Could not open {args.outdir}/{species1}_orthologs.tsv", file=sys.stderr)
                             sys.exit(1)
                     sp1_orthologs = ", ".join(species_grouping[species1])
                     for species2 in species_grouping:
-                        if species1 == species2: continue
+                        if species1 == species2:
+                            continue
                         sp2_orthologs = ", ".join(species_grouping[species2])
                         pairwise[species1]['csv'].writerow([f'{args.prefix}{clusterID:0>8}',
-                                                            species2,sp1_orthologs,
-                                                            sp2_orthologs])                
+                                                            species2, sp1_orthologs,
+                                                            sp2_orthologs])
                 clusterID += 1
+        last_cluster.add(gene1)
+        last_cluster.add(gene2)
+        last_seq = gene1
 
             last_cluster = set()
         last_cluster.add(gene1)
