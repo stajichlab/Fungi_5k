@@ -44,11 +44,12 @@ sed -n ${START},${END}p $sampset | while read INFILE
 do
 	NAME=$(basename $INFILE .proteins.fa)
 	echo "$NAME"
-	if [ ! -f $OUTDIR/${NAME}.signalp.results.txt ]; then
+	if [ ! -f $OUTDIR/${NAME}.signalp.results.txt.gz ]; then
 		time signalp6 -od $SCRATCH/${NAME} -org euk --mode fast -format txt -fasta $INDIR/$INFILE --write_procs $WRITECPU -bs $BATCH
-		rsync -a $SCRATCH/${NAME}/prediction_results.txt $OUTDIR/${NAME}.signalp.results.txt
-		rsync -a $SCRATCH/${NAME}/processed_entries.fasta $OUTDIR/${NAME}.signalp.processed_entries.fasta
-		rsync -a $SCRATCH/${NAME}/output.gff3 $OUTDIR/${NAME}.signalp.gff3
+		pigz -c $SCRATCH/${NAME}/prediction_results.txt > $OUTDIR/${NAME}.signalp.results.txt.gz
+		pigz -c $SCRATCH/${NAME}/processed_entries.fasta > $OUTDIR/${NAME}.signalp.processed_entries.fasta.gz
+		pigz -c $SCRATCH/${NAME}/output.gff3 > $OUTDIR/${NAME}.signalp.gff3.gz
+
 		rm -rf $SCRATCH/${NAME}
 	fi
 done
