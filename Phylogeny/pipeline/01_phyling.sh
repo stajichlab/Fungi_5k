@@ -1,5 +1,5 @@
 #!/usr/bin/bash -l
-#SBATCH -p epyc -c 48 -N 1 -n 1 --mem 384gb --out logs/phyling_align.log
+#SBATCH -p highmem -c 32 -N 1 -n 1 --mem 900gb --out logs/phyling_align.log
 
 module load phyling
 CPU=2
