@@ -9,6 +9,12 @@ import os
 import time
 
 
+def validate(seq, alphabet="ACGT"):
+    "Checks that a sequence only contains values from an alphabet"
+    alphabet = set(alphabet)
+    leftover = set(seq.upper()) - alphabet
+    return not leftover
+
 def calculate_codon_frequencies(fasta_file):
     codon_counter = Counter()
     total_codons = 0
@@ -19,7 +25,9 @@ def calculate_codon_frequencies(fasta_file):
         seqstr = str(record.seq).upper()
         codon_count = int(len(seqstr) / 3) # round down to the nearest codon
         for i in range(0, 3 * codon_count,3):
-            codon_counter.update({seqstr[i:i+3]: 1})
+            codon = seqstr[i:i+3]
+            if validate(codon):
+                codon_counter.update({codon: 1})
         total_codons += codon_count
 
     codon_frequencies = {codon: count / total_codons for codon, count in codon_counter.items()}

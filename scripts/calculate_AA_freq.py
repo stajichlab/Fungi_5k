@@ -6,6 +6,7 @@ import sys
 import argparse
 import csv
 import os
+import time
 
 
 def calculate_aa_frequencies(fasta_file):
@@ -46,7 +47,10 @@ def main():
             for file in args.fasta_file:
                 if args.debug:
                     print(f"Processing {file}")
+                timestart = time.time() 
                 (prefix,frequencies) = calculate_aa_frequencies(file)
+                timeend = time.time()
+                print(f"Time elapsed: {timeend-timestart}")
                 for aa, freq in sorted(frequencies.items()):
                     outwriter.writerow([prefix,aa,f"{freq:.4f}"])
                 n += 1
