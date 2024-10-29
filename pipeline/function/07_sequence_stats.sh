@@ -5,4 +5,9 @@
 
 module load biopython
 
-./scripts/calculate_AA_freq.py -d input
+if [ ! -s bigquery/aa_freq.csv ]; then
+    ./scripts/calculate_AA_freq.py -d input -o bigquery/aa_freq.csv
+fi
+if [ ! -s bigquery/codon_freq.csv ]; then
+    ./scripts/calculate_codon_freq.py -d input_cds -o bigquery/codon_freq.csv
+fi
