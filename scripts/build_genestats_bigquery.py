@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from Bio import SeqIO
+from Bio.SeqUtils import GC
 
 import csv
 import os
@@ -10,10 +11,13 @@ import argparse
 
 
 def parse_gff(gff, dna="", debug=False):
+    print(f"Reading {gff}, dna is {dna}")
     genedata = {}
     dnadb = None
     if dna:
-        dnadb = SeqIO.index(dna)
+        # consider index_db and compressed bgz fasta for speed/space?
+        #dnadb = SeqIO.index_db(dna + ".idx",dna,format='fasta')
+        dnadb = SeqIO.index(dna,format='fasta')
     with open(gff, 'r') as gff_fh:
         transcript2gene = {}
         for line in gff_fh:
@@ -27,13 +31,17 @@ def parse_gff(gff, dna="", debug=False):
             group_data = {}
             # how expensive is this
             for f in fields[8].split(';'):
+                if not f or '=' not in f:
+                    continue
                 (tag,value) = f.split('=')
                 group_data[tag] = value
-            (fstart,fend) = sorted(int(fields[3]), int(fields[4]))
+            (fstart,fend) = sorted([int(fields[3]), int(fields[4])])
             fstrand = -1 if fields[6] == '-' else 1
-            if fields[2] == 'gene':
+            ftype = fields[2]
+
+            if ftype == 'gene':
                 if 'ID' not in group_data:
-                    print(f'Cannot parse groups {groups} does not start with ID in {gff}\n{line}')
+                    print(f'Cannot parse groups {group_data} does not start with ID in {gff}\n{line}')
                     continue
                 gene_id = group_data['ID']
                 if gene_id in genedata:
@@ -45,9 +53,9 @@ def parse_gff(gff, dna="", debug=False):
                                     'type': 'NULL',
                                     'transcripts': {}, 
                                     }
-            elif fields[2] == 'mRNA':
+            elif ftype == 'mRNA':
                 if not ('ID' in group_data and 'Parent' in group_data):
-                    print(f'Cannot parse groups {groups} does not have ID or Parent in {gff}\n{line}')
+                    print(f'Cannot parse groups {group_data} not ID or Parent in {gff}\n{line}')
                     continue
                 mrna_id = group_data['ID']
                 gene_id = group_data['Parent']
@@ -61,16 +69,15 @@ def parse_gff(gff, dna="", debug=False):
                                                     'end': fend, 
                                                     'strand': fstrand, 
                                                     'is_partial': 'NULL',
-                                                    'exons': [], 'CDS': [],
-                                                    'introns': []}
-            elif fields[2] == 'tRNA':
-                
+                                                    'exon': [], 'CDS': [],
+                                                    'intron': []}
+            elif ftype == 'tRNA':
                 if not ('ID' in group_data and 'Parent' in group_data):
-                    print(f'Cannot parse groups {groups} does not have ID or Parent in {gff}\n{line}')
+                    print(f'Cannot parse groups {group_data} no ID or Parent in {gff}\n{line}')
                     continue
                 trna_id = group_data['ID']
                 gene_id = group_data['Parent']
-                transcript2gene[mrna_id] = gene_id
+                transcript2gene[trna_id] = gene_id
                 if gene_id not in genedata:
                     print(f"tRNA {trna_id} has no gene in {gff}")
                     continue
@@ -80,46 +87,90 @@ def parse_gff(gff, dna="", debug=False):
                                                     'end': fend, 
                                                     'strand': fstrand, 
                                                     'is_partial': 'FALSE',
-                                                    'exons': [], 
-                                                    'introns': []}
-            elif fields[2] == 'exon' or fields[2] == "CDS":
-                ftype = fields[2]               
-                if not ('Parent' in group_data):
-                    print(f'Cannot parse groups {groups} does not have at least Parent in {gff}\n{line}')
+                                                    'exon': [],
+                                                    'intron': []}
+            elif ftype in ('exon', 'CDS'):
+                if 'Parent' not in group_data:
+                    print(f'Group data {group_data} no Parent in {gff}\n{line}')
                     continue
                 parent_id = group_data['Parent']
                 gene_id = None
                 if parent_id not in transcript2gene:
-                    print(f"Exon from transcript {parent_id} cannot map to gene id in {gff}\n{line}")
+                    print(f"Exon from transcript {parent_id} cannot map gene id in {gff}\n{line}")
                     continue
                 else:
                     gene_id = transcript2gene[parent_id]
                 
-                if gene_id not in genedata or mrna_id not in genedata[gene_id]['transcripts']:
-                    print(f"Exon of {mrna_id} has no gene or mRNA in {gff}\n{line}")
+                if gene_id not in genedata or parent_id not in genedata[gene_id]['transcripts']:
+                    print(f"Exon of {parent_id} has no gene or mRNA in {gff}\n{line}")
                     continue
                 n = len(genedata[gene_id]['transcripts'][parent_id][ftype]) + 1
-                if 'ID' in group_data:
+                exon_id = f'{parent_id}.{ftype}{n}'
+                if 'ID' in group_data:  # override with existing value if provided
                     exon_id = group_data['ID']
-                else:
-                    exon_id = f'{parent_id}.{ftype}{n}'
-                
-                genedata[gene_id]['transcripts'][mrna_id][ftype].append({
+                exonseq_GC = GC(dnadb[fields[0]][fstart:fend].seq)
+                genedata[gene_id]['transcripts'][parent_id][ftype].append({
+                    'id': exon_id,
                     'chrom': fields[0], 
                     'start': fstart,
                     'end': fend, 
-                    'strand': fstrand, 
-                    'exon_number': None})
-    for gene in genedata:
-        for transcript in genedata[gene]['transcripts']:
-            genedata[gene]['transcripts'][transcript]['exons'] = sorted(
-                genedata[gene]['transcripts'][transcript]['exons'], 
+                    'strand': fstrand,
+                    'GC_content': f'{exonseq_GC:0.2f}',
+                    'order': None})
+    for (gene_name,gene) in genedata.items():
+        chrom_segment = dnadb[gene['chrom']]
+        for (transcript_name,transcript) in gene['transcripts'].items():
+            exonlist = sorted(transcript['exon'],
                 key=lambda x: x['strand'] * x['start'])
-            if 'CDS' in genedata[gene]['transcripts'][transcript]:
-                genedata[gene]['transcripts'][transcript]['CDS'] = sorted(
-                    genedata[gene]['transcripts'][transcript]['CDS'], 
+            e = 0
+            lastexon = {}
+            n = 0
+            for exon in exonlist:
+                exon['order'] = e
+                if debug:
+                    print(f"Exon {exon}")
+                e += 1
+                if lastexon:
+                    # reverse complement introns require diff
+                    # start/end compare
+                    if exon['strand'] == -1:
+                        intronstart = exon['end'] + 1
+                        intronend   = lastexon['start'] - 1
+                    else:
+                        intronstart = lastexon['end'] + 1
+                        intronend   = exon['start'] - 1
+                    print(f'intronstart is {intronstart} intronend is {intronend}')
+                    if intronstart > intronend:
+                        print("improper start/end for intron")
+                        return
+                    intron = chrom_segment[intronstart:intronend].seq
+                    if exon['strand'] == -1:
+                        intron = intron.reverse_complement()
+                    
+                    transcript['intron'].append({
+                        'id': f'{transcript_name}.intron{n}',
+                        'parent_id': transcript_name,
+                        'intron_number': n,
+                        'chrom': exon['chrom'],
+                        'start': intronstart,
+                        'end': intronend,
+                        'strand': exon['strand'],
+                        'GC_content': GC(intron),
+                        'seq': intron.seq,
+                        'splice_5': lastexon['end'][0:2],
+                        'splice_3': exon['start'][-2:]}
+                    )
+                lastexon = exon
+            c = 0
+            if 'CDS' in transcript:
+                transcript['CDS'] = sorted(
+                    transcript['CDS'],
                     key=lambda x: x['strand'] * x['start'])
-            
+                for cds in transcript['CDS']:
+                    print(f"CDS {cds}")
+                    cds['order'] = c
+                    c += 1
+    return(genedata)
 
 def main():
     if len(sys.argv) < 2:
@@ -134,7 +185,7 @@ def main():
     parser.add_argument("-p", "--pep_dir", default="input", help="Protein files dir")
     parser.add_argument("-gffext", "--gffext", default="gff3", help="file extension when reading gff folder")
     parser.add_argument("-pepext", "--pepext", default="proteins.fa", help="file extension when reading proteins folder")    
-    parser.add_argument("-dnaext", "--dnaext", default=".scaffolds.fa", help="file extension when reading proteins folder")
+    parser.add_argument("-dnaext", "--dnaext", default="scaffolds.fa", help="file extension when reading proteins folder")
     
     
     parser.add_argument('-v','--debug', help='Debugging output', action='store_true')
@@ -142,25 +193,27 @@ def main():
                         help="Output folder for gene info, exons, introns, transcripts, proteins")
     
     args = parser.parse_args()
-    print(args)
     if args.debug:
-        print(f"Reading GFF files from {args.gff_dir} and DNA files from {args.dna_dir}")
+        print(args)
+    if args.debug:
+        print(f"Reading GFF files from {args.gff_dir} and DNA files from '{args.dna_dir}'")
     output_files = ['gene_info.csv', 'gene_exons.csv', 'gene_CDS.csv', 'gene_introns.csv', 'gene_transcripts.csv', 'gene_proteins.csv']
     with ExitStack() as stack:
         files = [stack.enter_context(open(f'{args.outdir}/{filename}', 'w', newline='')) for filename in output_files]
         genefile, exonfile, CDSfile, intronsfile, mrnafile, pepfile = files        
         genecsv = csv.writer(genefile)    
         exoncsv = csv.writer(exonfile)
-        exoncsv = csv.writer(CDSfile)
+        CDScsv = csv.writer(CDSfile)
         introncsv = csv.writer(intronsfile)
         mrnacsv = csv.writer(mrnafile)
         pepcsv = csv.writer(pepfile)
         genecsv.writerow(['gene_id', 'species_prefix', 'chrom', 'start', 'end', 'strand','gene_type'])
-        mrnacsv.writerow(['gene_id', 'mrna_id', 'chrom', 'start', 'end', 'strand', 'is_partial'])
-        exoncsv.writerow(['exon_id', 'mrna_id', 'exon_number', 'chrom', 'start', 'end', 'strand','GC_content'])
-        introncsv.writerow(['intron_id', 'mrna_id', 'intron_number', 'chrom', 'start', 'end', 'strand',
-                        'splice_5', 'splice_3', 'GC_content'])
-        pepcsv.writerow(['protein_id', 'mrna_id', 'chrom', 'start', 'end', 'strand', 'length', 'md5checksum'])
+        mrnacsv.writerow(['gene_id', 'transcript_id', 'chrom', 'start', 'end', 'strand', 'is_partial'])
+        exoncsv.writerow(['exon_id', 'transcript_id', 'order', 'chrom', 'start', 'end', 'strand','GC_content'])
+        CDScsv.writerow(['cds_id', 'transcript_id', 'order', 'chrom', 'start', 'end', 'strand','GC_content'])
+        introncsv.writerow(['intron_id', 'transcript_id', 'intron_number', 'chrom', 'start', 'end', 'strand',
+                        'splice_5', 'splice_3', 'GC_content', 'seq'])
+        pepcsv.writerow(['protein_id', 'transcript_id', 'chrom', 'start', 'end', 'strand', 'length', 'md5checksum'])
         
         IDs_to_process = set()
         filenames = []
@@ -168,51 +221,67 @@ def main():
             for gff_file in os.listdir(args.gff_dir):
                 if gff_file.endswith(args.ext):
                     filename_stem = gff_file.replace(args.gffext,"")
+                    if filename_stem.endswith('.'):
+                        filename_stem = filename_stem[:-1]
                     filenames.append([filename_stem,os.path.join(args.gff_dir, gff_file)])
         elif args.gff_file:
             for gff_file in args.gff_file:
-                filename_stem = gff_file.replace(args.gffext,"")
-                filenames.append([filename_stem,args.gff_file])
+                filename_stem = os.path.basename(gff_file).replace(args.gffext,"")
+                if filename_stem.endswith('.'):
+                    filename_stem = filename_stem[:-1]
+                filenames.append([filename_stem,gff_file])
         for gff_tuple in filenames:
-            (fstem, gff_file) = gff_tuple
+            (fstem, gff_file_l) = gff_tuple
             dnafile = ""
             if args.dna_dir and os.path.isdir(args.dna_dir):
+                print(f"Adding for {fstem} in {args.dna_dir}")
                 dnafile = os.path.join(args.dna_dir, f'{fstem}.{args.dnaext}')
-            genedata = parse_gff(gff=gff_file, dna=dnafile, debug=args.debug)
+            genedata = parse_gff(gff=gff_file_l, dna=dnafile, debug=args.debug)
             if genedata:
                 IDs_to_process.add(fstem)
             species = None
-            for gene in genedata:
+            for (genename,gene) in genedata.items():
                 if not species:
-                    (species) = gene.split('_')[0]
-                genecsv.writerow([gene, species, 
-                                genedata[gene]['chrom'], 
-                                genedata[gene]['start'], 
-                                genedata[gene]['end'], 
-                                genedata[gene]['strand'],
-                                genedata[gene]['type']])
+                    (species) = genename.split('_')[0]
+                genecsv.writerow([genename, species,
+                                gene['chrom'],
+                                gene['start'],
+                                gene['end'],
+                                gene['strand'],
+                                gene['type']])
                 # consider saving space by only encoding strand on the gene level
-                for transcript in genedata[gene]['transcripts']:
-                    m = genedata[gene]['transcripts'][transcript]
-                    mrnacsv.writerow([gene, transcript, m['chrom'], m['start'], m['end'], 
-                                    m['strand'], m['is_partial']])
-                    for exon in m['exons']:
-                        e = m['exons'][exon]
-                        exoncsv.writerow([exon, transcript, e['exon_number'], 
-                                        e['chrom'], 
-                                        e['start'], 
-                                        e['end'], 
-                                        e['strand'],
-                                        e['GC_content']])
-                    for cds in m['CDS']:
-                        c = m['CDS'][cds]
-                        CDSfile.writerow([cds, transcript, c['exon_number'], 
-                                        c['chrom'], c['start'], c['end'], c['strand'],
-                                        c['GC_content']])
-                    for intron in m['introns']:
-                        i = m['introns'][intron]                                
-                        introncsv.writerow([intron, transcript, i['intron_number'], 
-                                        i['chrom'], i['start'], i['end'], i['strand'],                                        
-                                        i['splice_5'],i['splice_3'], i['GC_content']])
+                for (transcriptname,transcript) in gene['transcripts'].items():
+                    mrnacsv.writerow([genename, transcriptname,
+                                    transcript['chrom'],
+                                    transcript['start'],
+                                    transcript['end'],
+                                    transcript['strand'],
+                                    transcript['is_partial']])
+                    if 'exon' in transcript:
+                        for exon in transcript['exon']:
+                            exoncsv.writerow([exon['id'], transcriptname,
+                                            exon['order'],
+                                            exon['chrom'],
+                                            exon['start'],
+                                            exon['end'],
+                                            exon['strand'],
+                                            exon['GC_content']])
+
+                    if 'CDS' in transcript:
+                        for cds in transcript['CDS']:
+                            CDScsv.writerow([cds['id'], transcriptname,
+                                            cds['order'],
+                                            cds['chrom'],
+                                            cds['start'], cds['end'], cds['strand'],
+                                            cds['GC_content']])
+                    if 'intron' in transcript:
+                        for intron in transcript['intron']:
+                            introncsv.writerow([intron['id'], transcript,
+                                                intron['intron_number'],
+                                            intron['chrom'], intron['start'], intron['end'],
+                                            intron['strand'],
+                                            intron['splice_5'],intron['splice_3'],
+                                            intron['GC_content'],
+                                            intron['seq']])
 if __name__ == "__main__":
     main()
