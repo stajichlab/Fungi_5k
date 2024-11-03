@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import json
-import os
-import gzip
 import csv
 import argparse
 import re
