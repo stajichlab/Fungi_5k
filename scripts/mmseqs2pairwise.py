@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-#import csv
 import sys
 import argparse
 import pathlib
@@ -8,7 +7,6 @@ import re
 import os
 import time
 import gzip
-import cProfile
 def main():
     parser = argparse.ArgumentParser(
                     prog='mmseqs2pairwise.py',
