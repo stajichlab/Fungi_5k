@@ -10,7 +10,7 @@ import time
 
 
 def validate(seq, alphabet="ACGT"):
-    "Checks that a sequence only contains values from an alphabet"
+    """Checks that a sequence only contains values from an alphabet"""
     alphabet = set(alphabet)
     leftover = set(seq.upper()) - alphabet
     return not leftover
