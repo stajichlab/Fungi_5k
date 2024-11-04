@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-from Bio import SeqIO
+from pyfaidx import Fasta
+#from Bio import SeqIO
 from Bio.SeqUtils import GC
 
 import csv
@@ -8,28 +9,73 @@ import os
 import sys
 from contextlib import ExitStack
 import argparse
+import time
 
+STOP_CODONS = ('TAA','TAG','TGA')
 
+def getGC(seq):
+    """
+    Calculate the GC content of a given DNA sequence.
+
+    The GC content is the percentage of nucleotides in the sequence that are either 
+    guanine (G) or cytosine (C), including both uppercase and lowercase characters.
+
+    Args:
+        seq (str): A string representing the DNA sequence.
+
+    Returns:
+        float: The GC content as a fraction of the total sequence length. 
+        Returns 0 if the sequence length is 0.
+    """
+    gc = sum(str(seq).count(x) for x in "CGScgs")
+    length = len(seq)
+    if length == 0:
+        return 0
+    return 100 * (gc / length)
 def parse_gff(gff, dna="", debug=False):
-    print(f"Reading {gff}, dna is {dna}")
+    """
+    Process a GFF file to extract gene statistics and optionally include exon/intron DNA sequences.
+    Args:
+        gff (str): Path to the GFF file to be parsed.
+        dna (str, optional): Path to the DNA FASTA file. If provided, DNA sequences will be indexed and used to calculate GC content. Defaults to an empty string.
+        debug (bool, optional): If True, enables debug mode which prints additional information and limits the number of processed genes. Defaults to False.
+    Returns:
+        dict: A dictionary containing gene data, where keys are gene IDs and values are dictionaries with gene statistics and transcript information.
+    Raises:
+        ValueError: If the GFF file contains invalid or unexpected data.
+    Notes:
+        - The function processes different feature types such as 'gene', 'mRNA', 'tRNA', 'exon', and 'CDS'.
+        - For 'exon' and 'CDS' features, the GC content is calculated if the DNA file is provided.
+        - The function prints progress information if debug mode is enabled.
+    """
+    if debug:
+        print(f"Reading {gff}, dna is {dna}")
     genedata = {}
     dnadb = None
     if dna:
         # consider index_db and compressed bgz fasta for speed/space?
         #dnadb = SeqIO.index_db(dna + ".idx",dna,format='fasta')
-        dnadb = SeqIO.index(dna,format='fasta')
+        #dnadb = SeqIO.index(dna,format='fasta')
+        dnadb = Fasta(dna)
     with open(gff, 'r') as gff_fh:
         transcript2gene = {}
+        time0 = time.time()
         for line in gff_fh:
+            timestart = time.time()
             if line.startswith('#'):
                 continue
             fields = line.strip().split('\t')
             if len(fields) < 9:
                 if debug:
                     print(f"Skipping line with {len(fields)} fields in {gff}")
-                continue            
+                continue
+            if debug:
+                if genedata and len(genedata) % 1000 == 0 and fields[2] == 'gene':
+                    time1 = time.time()
+                    print(f'Processed {len(genedata)} genes in {gff} in {time1-time0} seconds')
+                    time0 = time1
+
             group_data = {}
-            # how expensive is this
             for f in fields[8].split(';'):
                 if not f or '=' not in f:
                     continue
@@ -37,6 +83,7 @@ def parse_gff(gff, dna="", debug=False):
                 group_data[tag] = value
             (fstart,fend) = sorted([int(fields[3]), int(fields[4])])
             fstrand = -1 if fields[6] == '-' else 1
+
             ftype = fields[2]
 
             if ftype == 'gene':
@@ -69,6 +116,8 @@ def parse_gff(gff, dna="", debug=False):
                                                     'end': fend, 
                                                     'strand': fstrand, 
                                                     'is_partial': 'NULL',
+                                                    'has_start_codon': 'NULL',
+                                                    'has_stop_codon': 'NULL',
                                                     'exon': [], 'CDS': [],
                                                     'intron': []}
             elif ftype == 'tRNA':
@@ -82,13 +131,17 @@ def parse_gff(gff, dna="", debug=False):
                     print(f"tRNA {trna_id} has no gene in {gff}")
                     continue
                 genedata[gene_id]['type'] = 'tRNA_gene'
-                genedata[gene_id]['transcripts'][trna_id] = {'chrom': fields[0], 
-                                                    'start': fstart, 
-                                                    'end': fend, 
-                                                    'strand': fstrand, 
-                                                    'is_partial': 'FALSE',
-                                                    'exon': [],
-                                                    'intron': []}
+                genedata[gene_id]['transcripts'][trna_id] = {
+                    'chrom': fields[0],
+                    'start': fstart,
+                    'end': fend,
+                    'strand': fstrand,
+                    'is_partial': 'FALSE',
+                    'has_start_codon': 'NULL',
+                    'has_stop_codon': 'NULL',
+                    'exon': [],
+                    'intron': []
+                    }
             elif ftype in ('exon', 'CDS'):
                 if 'Parent' not in group_data:
                     print(f'Group data {group_data} no Parent in {gff}\n{line}')
@@ -108,7 +161,8 @@ def parse_gff(gff, dna="", debug=False):
                 exon_id = f'{parent_id}.{ftype}{n}'
                 if 'ID' in group_data:  # override with existing value if provided
                     exon_id = group_data['ID']
-                exonseq_GC = GC(dnadb[fields[0]][fstart:fend].seq)
+                # zero base indexing
+                exonseq_GC = getGC(dnadb[fields[0]][fstart-1:fend])
                 genedata[gene_id]['transcripts'][parent_id][ftype].append({
                     'id': exon_id,
                     'chrom': fields[0], 
@@ -117,19 +171,24 @@ def parse_gff(gff, dna="", debug=False):
                     'strand': fstrand,
                     'GC_content': f'{exonseq_GC:0.2f}',
                     'order': None})
+
     for (gene_name,gene) in genedata.items():
         chrom_segment = dnadb[gene['chrom']]
         for (transcript_name,transcript) in gene['transcripts'].items():
+            if debug:
+                print(f"Processing {transcript_name}")
             exonlist = sorted(transcript['exon'],
                 key=lambda x: x['strand'] * x['start'])
             e = 0
             lastexon = {}
             n = 0
             for exon in exonlist:
+                # give an order for the exons based on 5' to 3' direction
                 exon['order'] = e
                 if debug:
                     print(f"Exon {exon}")
                 e += 1
+                # extract introns from the exons
                 if lastexon:
                     # reverse complement introns require diff
                     # start/end compare
@@ -139,14 +198,14 @@ def parse_gff(gff, dna="", debug=False):
                     else:
                         intronstart = lastexon['end'] + 1
                         intronend   = exon['start'] - 1
-                    print(f'intronstart is {intronstart} intronend is {intronend}')
+                    # zero based indexing
+                    # print(f'intronstart is {intronstart} intronend is {intronend}')
                     if intronstart > intronend:
                         print("improper start/end for intron")
                         return
-                    intron = chrom_segment[intronstart:intronend].seq
+                    intron = chrom_segment[intronstart-1:intronend]
                     if exon['strand'] == -1:
-                        intron = intron.reverse_complement()
-                    
+                        intron = -intron
                     transcript['intron'].append({
                         'id': f'{transcript_name}.intron{n}',
                         'parent_id': transcript_name,
@@ -155,21 +214,55 @@ def parse_gff(gff, dna="", debug=False):
                         'start': intronstart,
                         'end': intronend,
                         'strand': exon['strand'],
-                        'GC_content': GC(intron),
-                        'seq': intron.seq,
-                        'splice_5': lastexon['end'][0:2],
-                        'splice_3': exon['start'][-2:]}
+                        'GC_content': f'{getGC(intron):0.2f}',
+                        'seq': intron,
+                        'splice_5': intron[0:2],
+                        'splice_3': intron[-2:]}
                     )
+                    n += 1
                 lastexon = exon
+
+            # give the CDS features proper order
             c = 0
             if 'CDS' in transcript:
                 transcript['CDS'] = sorted(
                     transcript['CDS'],
                     key=lambda x: x['strand'] * x['start'])
                 for cds in transcript['CDS']:
-                    print(f"CDS {cds}")
                     cds['order'] = c
+                    if debug:
+                        print(f"CDS {cds}")
+                    cds_start = cds['start']-1
+                    cds_end = cds['end']
+                    CDS_seq = chrom_segment[cds_start:cds_end]
+                    if cds['strand'] == -1:
+                        CDS_seq = -CDS_seq
+                    if c == 0:
+                        if CDS_seq[0:3] == 'ATG':
+                            transcript['has_start_codon'] = 'TRUE'
+                        else:
+                            if debug:
+                                print(f'start codon for {transcript_name} is {CDS_seq[0:3]} strand={cds["strand"]} {cds_start}:{cds_end}')
+                            transcript['has_start_codon'] = 'FALSE'
+                            transcript['is_partial'] = 'TRUE'
                     c += 1
+                lastcds = transcript['CDS'][-1]
+                cds_start = lastcds['start']
+                cds_end = lastcds['end']
+                CDS_seq = chrom_segment[cds_start-1:cds_end]
+                if lastcds['strand'] == -1:
+                    CDS_seq = -CDS_seq
+                if CDS_seq[-3:] in STOP_CODONS:
+                    transcript['has_stop_codon'] = 'TRUE'
+                else:
+                    if debug:
+                        print(f'no stop codon for {transcript_name} is {CDS_seq[-3:]} strand={cds["strand"]} {cds_start}:{cds_end}')
+                        print(f'CDS_seq is {CDS_seq}')
+                    transcript['has_stop_codon'] = 'FALSE'
+                    transcript['is_partial'] = 'TRUE'
+                if transcript['has_stop_codon'] == 'TRUE' and transcript['has_start_codon'] == 'TRUE':
+                    transcript['is_partial'] = 'FALSE'
+
     return(genedata)
 
 def main():
@@ -208,7 +301,7 @@ def main():
         mrnacsv = csv.writer(mrnafile)
         pepcsv = csv.writer(pepfile)
         genecsv.writerow(['gene_id', 'species_prefix', 'chrom', 'start', 'end', 'strand','gene_type'])
-        mrnacsv.writerow(['gene_id', 'transcript_id', 'chrom', 'start', 'end', 'strand', 'is_partial'])
+        mrnacsv.writerow(['gene_id', 'transcript_id', 'chrom', 'start', 'end', 'strand', 'is_partial', 'has_start_codon', 'has_stop_codon'])
         exoncsv.writerow(['exon_id', 'transcript_id', 'order', 'chrom', 'start', 'end', 'strand','GC_content'])
         CDScsv.writerow(['cds_id', 'transcript_id', 'order', 'chrom', 'start', 'end', 'strand','GC_content'])
         introncsv.writerow(['intron_id', 'transcript_id', 'intron_number', 'chrom', 'start', 'end', 'strand',
@@ -256,7 +349,9 @@ def main():
                                     transcript['start'],
                                     transcript['end'],
                                     transcript['strand'],
-                                    transcript['is_partial']])
+                                    transcript['is_partial'],
+                                    transcript['has_start_codon'],
+                                    transcript['has_stop_codon']])
                     if 'exon' in transcript:
                         for exon in transcript['exon']:
                             exoncsv.writerow([exon['id'], transcriptname,
@@ -276,12 +371,12 @@ def main():
                                             cds['GC_content']])
                     if 'intron' in transcript:
                         for intron in transcript['intron']:
-                            introncsv.writerow([intron['id'], transcript,
+                            introncsv.writerow([intron['id'], intron['parent_id'],
                                                 intron['intron_number'],
-                                            intron['chrom'], intron['start'], intron['end'],
-                                            intron['strand'],
-                                            intron['splice_5'],intron['splice_3'],
-                                            intron['GC_content'],
-                                            intron['seq']])
+                                                intron['chrom'], intron['start'], intron['end'],
+                                                intron['strand'],
+                                                intron['splice_5'],intron['splice_3'],
+                                                intron['GC_content'],
+                                                intron['seq']])
 if __name__ == "__main__":
     main()
