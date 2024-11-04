@@ -309,7 +309,7 @@ def main():
         filenames = []
         if args.gff_dir and os.path.isdir(args.gff_dir):
             for gff_file in os.listdir(args.gff_dir):
-                if gff_file.endswith(args.ext):
+                if gff_file.endswith(args.gffext):
                     filename_stem = gff_file.replace(args.gffext,"")
                     if filename_stem.endswith('.'):
                         filename_stem = filename_stem[:-1]
