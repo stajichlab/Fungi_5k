@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
 from pyfaidx import Fasta
-#from Bio import SeqIO
-from Bio.SeqUtils import GC
-
 import csv
 import os
 import sys
