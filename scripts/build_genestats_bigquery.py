@@ -52,7 +52,7 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
         - The function prints progress information if debug mode is enabled.
     """
     if debug:
-        print(f"Reading {gff}, dna is {dna}")
+        print(f"DEBUG: parse_gff - Reading {gff}, dna is {dna}")
     genedata = {}
     dnadb = None
     if dna:
@@ -70,14 +70,15 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
             fields = line.strip().split("\t")
             if len(fields) < 9:
                 if debug:
-                    print(f"Skipping line with {len(fields)} fields in {gff}")
+                    print(f"DEBUG: Skipping line with {len(fields)} fields in {gff}")
                 continue
             if debug:
                 if genedata and len(genedata) % 1000 == 0 and fields[2] == "gene":
                     time1 = time.time()
-                    print(
-                        f"Processed {len(genedata)} genes in {gff} in {time1-time0} seconds"
-                    )
+                    if debug:
+                        print(
+                            f"DEBUG: Processed {len(genedata)} genes in {gff} in {time1-time0} seconds"
+                        )
                     time0 = time1
 
             group_data = {}
@@ -94,12 +95,12 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
             if ftype == "gene":
                 if "ID" not in group_data:
                     print(
-                        f"Cannot parse groups {group_data} does not start with ID in {gff}\n{line}"
+                        f"WARNING: Cannot parse groups {group_data} does not start with ID in {gff}\n{line}"
                     )
                     continue
                 gene_id = group_data["ID"]
                 if gene_id in genedata:
-                    print(f"Duplicate gene ID {gene_id} in {gff}")
+                    print(f"WARNING: Duplicate gene ID {gene_id} in {gff}")
                     continue
                 genedata[gene_id] = {
                     "chrom": fields[0],
@@ -112,14 +113,14 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
             elif ftype == "mRNA":
                 if not ("ID" in group_data and "Parent" in group_data):
                     print(
-                        f"Cannot parse groups {group_data} not ID or Parent in {gff}\n{line}"
+                        f"WARNING: Cannot parse groups {group_data} not ID or Parent in {gff}\n{line}"
                     )
                     continue
                 mrna_id = group_data["ID"]
                 gene_id = group_data["Parent"]
                 transcript2gene[mrna_id] = gene_id
                 if gene_id not in genedata:
-                    print(f"mRNA {mrna_id} has no gene in {gff}")
+                    print(f"WARNING: mRNA {mrna_id} has no gene in {gff}")
                     continue
                 genedata[gene_id]["type"] = "protein_coding"
                 genedata[gene_id]["transcripts"][mrna_id] = {
@@ -143,14 +144,14 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
             elif ftype == "tRNA":
                 if not ("ID" in group_data and "Parent" in group_data):
                     print(
-                        f"Cannot parse groups {group_data} no ID or Parent in {gff}\n{line}"
+                        f"WARNING: Cannot parse groups {group_data} no ID or Parent in {gff}\n{line}"
                     )
                     continue
                 trna_id = group_data["ID"]
                 gene_id = group_data["Parent"]
                 transcript2gene[trna_id] = gene_id
                 if gene_id not in genedata:
-                    print(f"tRNA {trna_id} has no gene in {gff}")
+                    print(f"WARNING: tRNA {trna_id} has no gene in {gff}")
                     continue
                 genedata[gene_id]["type"] = "tRNA_gene"
                 genedata[gene_id]["transcripts"][trna_id] = {
@@ -166,13 +167,13 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
                 }
             elif ftype in ("exon", "CDS"):
                 if "Parent" not in group_data:
-                    print(f"Group data {group_data} no Parent in {gff}\n{line}")
+                    print(f"WARNING: Group data {group_data} no Parent in {gff}\n{line}")
                     continue
                 parent_id = group_data["Parent"]
                 gene_id = None
                 if parent_id not in transcript2gene:
                     print(
-                        f"Exon from transcript {parent_id} cannot map gene id in {gff}\n{line}"
+                        f"WARNING: Exon from transcript {parent_id} cannot map gene id in {gff}\n{line}"
                     )
                     continue
                 else:
@@ -182,7 +183,7 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
                     gene_id not in genedata
                     or parent_id not in genedata[gene_id]["transcripts"]
                 ):
-                    print(f"Exon of {parent_id} has no gene or mRNA in {gff}\n{line}")
+                    print(f"WARNING: Exon of {parent_id} has no gene or mRNA in {gff}\n{line}")
                     continue
                 n = len(genedata[gene_id]["transcripts"][parent_id][ftype]) + 1
                 exon_id = f"{parent_id}.{ftype}{n}"
@@ -206,7 +207,7 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
         chrom_segment = dnadb[gene["chrom"]]
         for transcript_name, transcript in gene["transcripts"].items():
             if debug:
-                print(f"Processing {transcript_name}")
+                print(f"DEBUG: Processing {transcript_name}")
             exonlist = sorted(
                 transcript["exon"], key=lambda x: x["strand"] * x["start"]
             )
@@ -217,7 +218,7 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
                 # give an order for the exons based on 5' to 3' direction
                 exon["order"] = e
                 if debug:
-                    print(f"Exon {exon}")
+                    print(f"DEBUG: Exon {exon}")
                 e += 1
                 # extract introns from the exons
                 if lastexon:
@@ -230,9 +231,8 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
                         intronstart = lastexon["end"] + 1
                         intronend = exon["start"] - 1
                     # zero based indexing
-                    # print(f'intronstart is {intronstart} intronend is {intronend}')
                     if intronstart > intronend:
-                        print("improper start/end for intron")
+                        print(f"WARNING: improper start/end for exon {exon} lastexon: {lastexon}")
                         return
                     intron = chrom_segment[intronstart - 1 : intronend]
                     if exon["strand"] == -1:
@@ -269,7 +269,7 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
                 for cds in transcript["CDS"]:
                     cds["order"] = c
                     if debug:
-                        print(f"CDS {cds}")
+                        print(f"DEBUG: CDS {cds}")
                     (cds_start,cds_end) = (cds["start"] - 1, cds["end"])
                     CDS_exon_seq = chrom_segment[cds_start:cds_end]
                     if cds["strand"] == -1:
@@ -282,12 +282,13 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
                         else:
                             if debug:
                                 print(
-                                    f'start codon for {transcript_name} is {CDS_exon_seq[:3]} strand={cds["strand"]} {cds_start}:{cds_end}'
+                                    f"DEBUG: start codon for {transcript_name} is {CDS_exon_seq[:3]} strand={cds["strand"]} {cds_start}:{cds_end}"
                                 )
                             transcript["has_start_codon"] = "FALSE"
                             transcript["is_partial"] = "TRUE"
                     else:
-                        print(f'lastcds is {lastcds} intron_index {intron_index}')
+                        if debug:
+                            print(f'WARNING: lastcds is {lastcds} intron_index {intron_index}')
                         # need to sync the intron index with the CDS
                         if intron_index is None:
                             for i, intron in enumerate(transcript["intron"]):
@@ -301,8 +302,8 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
                                         intron_index = i
                                         break
                             if intron_index is None:
-                                print(f'ALERT COULD NOT FIND INTRON: lastcds is {lastcds} and cds is {cds}')
-                                print(f'introns are {transcript["intron"]}')
+                                print(f'WARNING: Could not find intron between: lastcds is {lastcds} and cds is {cds}')
+                                print(f'WARNING: introns are {transcript["intron"]}')
                         else:
                             intron_index += 1
 
@@ -316,8 +317,8 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
                     transcript["has_stop_codon"] = "TRUE"
                 else:
                     if debug:
-                        print(f'no stop codon for {transcript_name} is {CDS_sequence[-3:]}')
-                        print(f"CDS_seq is {CDS_sequence}")
+                        print(f'DEBUG: no stop codon for {transcript_name} is {CDS_sequence[-3:]}')
+                        print(f"DEBUG: CDS_seq is {CDS_sequence}")
                     transcript["has_stop_codon"] = "FALSE"
                     transcript["is_partial"] = "TRUE"
                 if (transcript["has_stop_codon"] == "TRUE"
@@ -326,8 +327,9 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
                 # if we have codon table lookup we can use that
                 proteinseq = Seq.translate(Seq(str(CDS_sequence)),table=codon_table)
                 if proteinseq[-1:] == "*":
-                    proteinseq = proteinseq[:-1] # strip trainling stop codon.
-                transcript["protein"]["length"] = len(proteinseq)
+                    proteinseq = proteinseq[:-1] # strip trailing stop codon.
+                transcript["protein"]["length"] = len(str(proteinseq))
+                transcript["protein"]["pepseq"] = str(proteinseq)
                 transcript["protein"]["md5checksum"] = hashlib.md5(str(proteinseq).encode()).hexdigest()
 
     return genedata
@@ -470,6 +472,7 @@ def main():
                 "protein_id",
                 "transcript_id",
                 "length",
+                "peptide",
                 "md5checksum",
             ]
         )
@@ -495,7 +498,8 @@ def main():
             (fstem, gff_file_l) = gff_tuple
             dnafile = ""
             if args.dna_dir and os.path.isdir(args.dna_dir):
-                print(f"Adding for {fstem} in {args.dna_dir}")
+                if args.debug:
+                    print(f"DEBUG: Adding for {fstem} in {args.dna_dir}")
                 dnafile = os.path.join(args.dna_dir, f"{fstem}.{args.dnaext}")
             genedata = parse_gff(gff=gff_file_l, dna=dnafile, debug=args.debug)
             if genedata:
@@ -584,6 +588,7 @@ def main():
                                 transcript["protein"]["id"],
                                 transcriptname,
                                 transcript["protein"]["length"],
+                                transcript["protein"]["pepseq"],
                                 transcript["protein"]["md5checksum"],
                             ]
                         )
