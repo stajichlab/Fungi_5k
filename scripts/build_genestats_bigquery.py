@@ -282,7 +282,7 @@ def parse_gff(gff, dna="", codon_table=1,debug=False):
                         else:
                             if debug:
                                 print(
-                                    f"DEBUG: start codon for {transcript_name} is {CDS_exon_seq[:3]} strand={cds["strand"]} {cds_start}:{cds_end}"
+                                    f"DEBUG: start codon for {transcript_name} is {CDS_exon_seq[:3]} strand={cds['strand']} {cds_start}:{cds_end}"
                                 )
                             transcript["has_start_codon"] = "FALSE"
                             transcript["is_partial"] = "TRUE"
