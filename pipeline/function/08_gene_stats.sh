@@ -1,5 +1,5 @@
 #!/usr/bin/bash -l
-#SBATCH -N 1 -n 1 -c 2 --mem 96gb -p hpcc_default
+#SBATCH -N 1 -n 1 -c 24 --mem 96gb -p hpcc_default
 #SBATCH --job-name=genegff_stats
 #SBATCH --output=logs/genegff_seqstats.log
 
@@ -9,9 +9,36 @@ if [ ! -z $SLURM_CPUS_ON_NODE ]; then
 fi
 module load biopython
 
+do_query() {
+    local START=$1
+    local NUM=$2
+    local GFOLDER=$3
+    local END=$(expr $START + $NUM)
+    OUTDIR=$SCRATCH/start_${START}
+    echo "st=${START} end=${END}"
+    mkdir -p $OUTDIR
+    ./scripts/build_genestats_bigquery.py --outdir $OUTDIR $(ls $GFOLDER | sed -n "${START},${END}p" | xargs -i echo "${GFOLDER}/"{})
+}
+export -f do_query
 EXT=gene_info.csv
-if [ ! -s bigquery/$EXT ]; then
+OUTDIR=bigquery
+BINSIZE=500
+if [ ! -s $OUTDIR/$EXT ]; then
     INDIR=gff3
-    # this should be fast enough
-    time ./scripts/build_genestats_bigquery.py --gff_dir gff3
+    COUNT=$(ls $INDIR | wc -l)
+    echo "starting -->"
+    date
+    time parallel -j $CPU do_query ::: $(seq 1 $BINSIZE $COUNT) ::: $BINSIZE ::: $INDIR
+    for file in $SCRATCH/start_1/*.csv; do
+        head -n 1 $file > $OUTDIR/$(basename $file)
+    done
+    for file in $SCRATCH/start_*/*.csv;
+    do
+        echo "processing ${file}"
+        tail -n +2 $file >> ${OUTDIR}/$(basename $file)
+    done
+    date
+    echo "--> Finished"
+    # this should be fast enough (10 hrs for 5800 files)
+    #time ./scripts/build_genestats_bigquery.py --gff_dir gff3 
 fi
