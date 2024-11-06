@@ -27,3 +27,9 @@ if [ ! -s bigquery/$EXT ]; then
     ls -U $SCRATCH | grep "$EXT" | xargs -I {} sh -c "tail -n +2 $SCRATCH/{} >> bigquery/$EXT.csv"
 #    ./scripts/calculate_codon_freq.py -d input_cds -o bigquery/codon_freq.csv
 fi
+EXT=gene_info.csv
+if [ ! -s bigquery/$EXT ]; then
+    INDIR=gff3
+    # this should be fast enough
+    ./scripts/build_genestats_bigquery.py --gff_dir gff3
+fi
