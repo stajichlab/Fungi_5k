@@ -22,7 +22,7 @@ do_query() {
 export -f do_query
 EXT=gene_info.csv
 OUTDIR=bigquery
-BINSIZE=500
+BINSIZE=200
 if [ ! -s $OUTDIR/$EXT ]; then
     INDIR=gff3
     COUNT=$(ls $INDIR | wc -l)
