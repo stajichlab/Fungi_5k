@@ -89,7 +89,7 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
             fstrand = -1 if fields[6] == "-" else 1
 
             ftype = fields[2]
-
+            
             if ftype == "gene":
                 if "ID" not in group_data:
                     print(
@@ -202,6 +202,7 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
                         "strand": fstrand,
                         "GC_content": f"{exonseq_GC:0.2f}",
                         "order": None,
+                        "frame": fields[7],
                     }
                 )
 
@@ -272,9 +273,15 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
                 lastcds = None
                 for cds in transcript["CDS"]:
                     cds["order"] = c
+                    frame = int(cds["frame"])
                     if debug:
                         print(f"DEBUG: CDS {cds}")
                     (cds_start, cds_end) = (cds["start"] - 1, cds["end"])
+                    if c == 0 and frame > 0:
+                        if cds["strand"] == -1:
+                            cds_end -= frame
+                        else:
+                            cds_start += frame
                     CDS_exon_seq = chrom_segment[cds_start:cds_end]
                     if cds["strand"] == -1:
                         CDS_exon_seq = -CDS_exon_seq
@@ -343,6 +350,7 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
                 ):
                     transcript["is_partial"] = "FALSE"
                 # if we have codon table lookup we can use that
+
                 proteinseq = Seq.translate(Seq(str(CDS_sequence)), table=codon_table)
                 if proteinseq[-1:] == "*":
                     proteinseq = proteinseq[:-1]  # strip trailing stop codon.
