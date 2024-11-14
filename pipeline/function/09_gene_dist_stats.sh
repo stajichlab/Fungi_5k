@@ -6,7 +6,7 @@
 CPU=1
 if [ ! -z $SLURM_CPUS_ON_NODE ]; then
     CPU=$SLURM_CPUS_ON_NODE
-fi
+fi  
 
 do_query() {
     local START=$1
@@ -16,7 +16,7 @@ do_query() {
     OUTDIR=$SCRATCH/start_${START}
     echo "st=${START} end=${END}"
     mkdir -p $OUTDIR
-    ./scripts/build_genestats_bigquery.py --outdir $OUTDIR $(ls $GFOLDER | sed -n "${START},${END}p" | xargs -i echo "${GFOLDER}/"{})
+    ./scripts/calculate_intergenic.py --outdir $OUTDIR $(ls $GFOLDER | sed -n "${START},${END}p" | xargs -i echo "${GFOLDER}/"{})
 }
 export -f do_query
 EXT=gene_pairwise_distances.csv
@@ -39,5 +39,5 @@ if [ ! -s $OUTDIR/$EXT ]; then
     date
     echo "--> Finished"
     # this should be fast enough (10 hrs for 5800 files)
-    #time ./scripts/build_genestats_bigquery.py --gff_dir gff3 
+    #time ./scripts/calculate_intergenic.py --gff_dir gff3 
 fi
