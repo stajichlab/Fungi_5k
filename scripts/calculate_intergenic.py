@@ -8,10 +8,6 @@ import sys
 import time
 from contextlib import ExitStack
 
-#from Bio.Seq import Seq
-#from pyfaidx import Fasta
-
-
 def parse_gff_get_distances(gff, debug=False):
     """
     Process a GFF file to extract gene distances
