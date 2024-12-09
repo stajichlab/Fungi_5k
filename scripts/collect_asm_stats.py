@@ -41,13 +41,28 @@ def main():
         csvout.writerow(header)
         
         for sp in species:
-            species_string = f"{sp['SPECIES']}_{sp['STRAIN']}".replace(' ', '_')
+            
+            species_string = sp['SPECIES']
+            if len(sp['STRAIN']):
+                species_string += "_" + sp['STRAIN']
+            species_string = species_string.replace(' ', '_')
             stemname = f"{species_string}.scaffolds.stats.txt"
+            statsfile = os.path.join(args.genomedir,stemname)
+            if not os.path.exists(statsfile):
+                species_string = sp['SPECIESIN']
+                if len(sp['STRAIN']):
+                    species_string += "_" + sp['STRAIN']
+                species_string = species_string.replace(' ', '_')
+                
+                stemname = f"{species_string}.scaffolds.stats.txt"
+                statsfile = os.path.join(args.genomedir,stemname)
+                if not os.path.exists(statsfile):
+                    print(f"Missing {statsfile}")
+                    continue
             if args.debug:
                 print(stemname)
             row= [ sp['LOCUSTAG'], sp['SPECIES'], species_string ]
             
-            statsfile = os.path.join(args.genomedir,stemname)
             if not os.path.exists(statsfile):
                 if args.debug:
                     print("Missing",statsfile)
