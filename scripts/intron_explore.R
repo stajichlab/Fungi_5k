@@ -26,25 +26,75 @@ k <- length(fontarray)
 # to use a database file already created by 
 con <- dbConnect(duckdb(), dbdir="intronDB/introns.duckdb", read_only = TRUE)
 
-genelensql="SELECT substring(transcript_id,1,8) as LOCUSTAG, p.length as protein_length, p.length * 3 as cds_length, p.transcript_id
-FROM gene_proteins p"
-
-genelen <- dbGetQuery(con, genelensql)
-
-intronsql="SELECT substring(transcript_id,1,8) as LOCUSTAG, 
-max(gene_introns.intron_number + 1) as intron_count, transcript_id
-FROM gene_introns 
-GROUP BY transcript_id"
-
-intronct <- dbGetQuery(con, intronsql)
-
-intronfreq = genelen %>% left_join(intronct %>% select(-c(LOCUSTAG)),by="transcript_id") %>% 
-  mutate( intronperkb = 1000 * replace_na(intron_count / cds_length,0)) 
-  
-speciessql = "SELECT s.LOCUSTAG, PHYLUM, SUBPHYLUM, CLASS, TOTAL_LENGTH 
+speciessql = "SELECT s.LOCUSTAG, PHYLUM, SUBPHYLUM, CLASS, s.ORDER, GENUS, s.SPECIES, s.STRAIN, TOTAL_LENGTH, N50
 FROM species as s, asm_stats as stats
 WHERE s.LOCUSTAG = stats.LOCUSTAG"
+
 speciesinfo <- dbGetQuery(con, speciessql)
+
+genelensql="
+SELECT LOCUSTAG, avg(length) as mean_protein_length, median(length) as median_protein_length, 
+                 avg(cds_length) as mean_cds_length, median(cds_length) as median_cds_length
+FROM (SELECT substring(transcript_id,1,8) as LOCUSTAG, p.length, p.length * 3 as cds_length FROM gene_proteins p)
+GROUP BY LOCUSTAG"
+genelen <- dbGetQuery(con, genelensql)
+
+# (SELECT abs(gene_introns.end - gene_introns.start) as intron_length
+
+# rewrite to add introns per KB 
+introncountsql="
+SELECT LOCUSTAG, avg(intron_count) as mean_intron_ct, median(intron_count) as median_intron_ct
+FROM (SELECT substring(gene_introns.transcript_id,1,8) as LOCUSTAG, max(gene_introns.intron_number + 1) as intron_count,
+            gene_introns.transcript_id
+      FROM gene_introns 
+      GROUP BY gene_introns.transcript_id)
+GROUP BY LOCUSTAG"
+
+intronct <- dbGetQuery(con, introncountsql)
+
+## test
+testsql = "SELECT max(gene_introns.intron_number + 1) as intron_count, gene_introns.transcript_id
+      FROM gene_introns WHERE transcript_id LIKE 'FE0E32D4_006065%'
+      GROUP BY gene_introns.transcript_id"
+testdat <- dbGetQuery(con, testsql)
+testdat
+testlensql = "SELECT transcript_id, p.length, p.length * 3 as cds_length FROM gene_proteins p
+              WHERE transcript_id LIKE 'FE0E32D4_006065%'"
+testlendat <- dbGetQuery(con, testlensql)
+testlendat
+### 
+
+# intron length calculated
+intronlensql="
+SELECT LOCUSTAG, avg(intron_length) as mean_intron_len, median(intron_length) as median_intron_len
+FROM (SELECT substring(transcript_id,1,8) as LOCUSTAG, abs(gene_introns.end - gene_introns.start) as intron_length
+      FROM gene_introns)
+GROUP BY LOCUSTAG"
+
+intronlens <- dbGetQuery(con, intronlensql)
+
+# intron frequency calculated
+intronfreqsql="
+SELECT LOCUSTAG, avg(intronsperkb) as mean_intronsperkb, median(intronsperkb) as median_intronsperkb
+FROM (SELECT introns.LOCUSTAG, p.transcript_id, 1000 * IFNULL(intron_count,0) / (3 * p.length) as intronsperkb
+  FROM gene_proteins AS p LEFT JOIN
+  (SELECT substring(gene_introns.transcript_id,1,8) as LOCUSTAG, max(gene_introns.intron_number + 1) as intron_count,
+            gene_introns.transcript_id
+      FROM gene_introns 
+      GROUP BY gene_introns.transcript_id) as introns 
+      ON p.transcript_id = introns.transcript_id)
+GROUP BY LOCUSTAG
+  "
+
+intronfreq <- dbGetQuery(con, intronfreqsql)
+
+
+intron_data <- intronfreq %>% left_join(intronlens,by="LOCUSTAG") %>% left_join(speciesinfo,by="LOCUSTAG")
+
+
+# this is where we have to aggregate for all the individual values
+
+
 
 sumbysubphylum_freq <- intronfreq %>% left_join(speciesinfo,by="LOCUSTAG") %>%
   group_by(SUBPHYLUM) %>% summarise(freq_mean = mean(intronperkb),
@@ -101,7 +151,7 @@ p <- ggplot(subphylumdata,
   ylab("Mean intron length") +
   theme_cowplot(12) 
 
-p
+ggsave("plots/intron_size_freq.pdf",p,width=15,height=10)
 
 sumbysubphylum_count <- intronct %>% left_join(speciesinfo,by="LOCUSTAG") %>%
   group_by(SUBPHYLUM) %>% summarise(ct_mean = mean(intron_count),
