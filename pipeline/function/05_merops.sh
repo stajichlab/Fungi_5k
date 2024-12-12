@@ -58,11 +58,12 @@ do
 	NAME=$(basename $INFILE .proteins.fa)
 	echo "$NAME"
     OUT=$OUTDIR/$NAME.${OUTEXT}
-    if [ ! -f ${OUT} ]; then
+    if [ ! -f ${OUT}.gz ]; then
         time blastp -query $INDIR/$INFILE -db $MEROPS_DB/merops_scan.lib -out ${OUT} \
         -num_threads $CPU -seg yes -soft_masking true \
         -max_target_seqs $MEROPS_MAX_TARGETS \
         -evalue $MEROPS_CUTOFF -outfmt 6 \
         -use_sw_tback
+	pigz $OUT
     fi
 done

@@ -1,13 +1,11 @@
 #!/usr/bin/bash -l
-#SBATCH -N 1 -n 1 -c 64 --mem 96gb -p hpcc_default
-#SBATCH --job-name=genegff_stats
-#SBATCH --output=logs/genegff_seqstats.log
+#SBATCH -c 64 --mem 96gb --out logs/function_convert_pfam_bigquery.log
+#SBATCH --job-name=convert_pfam
 
 CPU=1
 if [ ! -z $SLURM_CPUS_ON_NODE ]; then
     CPU=$SLURM_CPUS_ON_NODE
 fi
-module load biopython
 
 do_query() {
     local START=$1
@@ -17,28 +15,27 @@ do_query() {
     OUTDIR=$SCRATCH/start_${START}
     echo "st=${START} end=${END}"
     mkdir -p $OUTDIR
-    ./scripts/build_genestats_bigquery.py --outdir $OUTDIR $(ls $GFOLDER | sed -n "${START},${END}p" | xargs -i echo "${GFOLDER}/"{})
+    ./scripts/pfamtsv_to_long.py --outfile $OUTDIR/pfam.csv $(ls $GFOLDER | sed -n "${START},${END}p" | xargs -i echo "${GFOLDER}/"{})
 }
 export -f do_query
-EXT=gene_info.csv
+EXT=pfam.csv
 OUTDIR=bigquery
 BINSIZE=100
-if [ ! -s $OUTDIR/$EXT ]; then
-    INDIR=gff3
+if [ ! -s $OUTDIR/$EXT.gz ]; then
+    INDIR=results/function/pfam
     COUNT=$(ls $INDIR | wc -l)
     echo "starting -->"
     date
     time parallel -j $CPU do_query ::: $(seq 1 $BINSIZE $COUNT) ::: $BINSIZE ::: $INDIR
-    for file in $SCRATCH/start_1/*.csv; do
+    for file in $SCRATCH/start_1/pfam.csv; do
         head -n 1 $file > $OUTDIR/$(basename $file)
     done
-    for file in $SCRATCH/start_*/*.csv;
+    for file in $SCRATCH/start_*/pfam.csv;
     do
         echo "processing ${file}"
         tail -n +2 $file >> ${OUTDIR}/$(basename $file)
     done
     date
     echo "--> Finished"
-    # this should be fast enough (10 hrs for 5800 files)
-    #time ./scripts/build_genestats_bigquery.py --gff_dir gff3 
 fi
+pigz $EXT
