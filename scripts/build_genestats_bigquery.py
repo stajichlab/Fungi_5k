@@ -5,14 +5,18 @@ import csv
 import hashlib
 import os
 import sys
+import re
 import time
+import tempfile
 from contextlib import ExitStack
 
 from Bio.Seq import Seq
 from pyfaidx import Fasta
+from pybedtools import BedTool
 
 STOP_CODONS = ("TAA", "TAG", "TGA")
 
+trna_regexp = re.compile(r'Predicted (\S+)')
 
 def getGC(seq):
     """
@@ -60,7 +64,20 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
         # dnadb = SeqIO.index_db(dna + ".idx",dna,format='fasta')
         # dnadb = SeqIO.index(dna,format='fasta')
         dnadb = Fasta(dna)
+    tRNA_gff = os.path.join(os.path.dirname(os.path.realpath(gff)), 
+                            "../predict_misc/trnascan.no-overlaps.gff3")
+    temp_tRNA = None
+    if os.path.exists(tRNA_gff):
+        tRNA_gff = os.path.realpath(tRNA_gff)        
+        temp_tRNA = tempfile.NamedTemporaryFile(delete=False,suffix=".bed")
+    else:
+        tRNA_gff = None
+
     with open(gff, "r") as gff_fh:
+        if debug:
+            print(f"DEBUG: tRNA_gff is {tRNA_gff}")
+            print(f"DEBUG: tRNA_temp is {temp_tRNA.name}")
+
         transcript2gene = {}
         time0 = time.time()
         for line in gff_fh:
@@ -147,11 +164,20 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
                     continue
                 trna_id = group_data["ID"]
                 gene_id = group_data["Parent"]
+                amino_acid = group_data.get("product", "NULL")
+                amino_acid = amino_acid.replace("tRNA-", "")
+                amino_acid = amino_acid.replace(";", "")
+                if tRNA_gff:
+                    row = "\t".join([fields[0], str(fstart), str(fend), gene_id])+"\n"
+                    temp_tRNA.write(b'%s' % row.encode())
                 transcript2gene[trna_id] = gene_id
                 if gene_id not in genedata:
                     print(f"WARNING: tRNA {trna_id} has no gene in {gff}")
                     continue
-                genedata[gene_id]["type"] = "tRNA_gene"
+                genedata[gene_id]["type"] = "tRNA_gene"                
+                genedata[gene_id]["tRNA_amino_acid"] = amino_acid
+                genedata[gene_id]["codon"] = ""
+                genedata[gene_id]["anticodon"] = ""
                 genedata[gene_id]["transcripts"][trna_id] = {
                     "chrom": fields[0],
                     "start": fstart,
@@ -162,7 +188,7 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
                     "has_stop_codon": "NULL",
                     "exon": [],
                     "intron": [],
-                }
+                    }
             elif ftype in ("exon", "CDS"):
                 if "Parent" not in group_data:
                     print(
@@ -205,7 +231,6 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
                         "frame": fields[7],
                     }
                 )
-
     for gene_name, gene in genedata.items():
         chrom_segment = dnadb[gene["chrom"]]
         for transcript_name, transcript in gene["transcripts"].items():
@@ -360,6 +385,37 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
                     str(proteinseq).encode()
                 ).hexdigest()
 
+    if tRNA_gff:
+        temp_tRNA.close()
+        tRNA_bed = BedTool(temp_tRNA.name)
+        tRNA_gff_bedtools = BedTool(tRNA_gff)
+        tRNAs = tRNA_bed.intersect(tRNA_gff_bedtools,wo=True)
+        for tRNA in tRNAs:
+            chrom = tRNA.chrom
+            start = tRNA.start
+            end = tRNA.end
+            trna_id = tRNA.name            
+            if trna_id not in genedata:
+                print(f"WARNING: tRNA {trna_id} has no gene in {gff}")
+                continue
+            gtype = tRNA[6]
+            if gtype != "tRNA":
+                continue
+            for f in tRNA[12].split(";"):
+                (tag, note) = f.split("=")
+                if tag == "note":
+                    m = trna_regexp.search(note)
+                    if m:
+                        anticodon = m.group(1)
+                        codon = Seq(anticodon).reverse_complement()
+                        genedata[trna_id]["tRNA_codon"] = str(Seq(anticodon).reverse_complement())
+                        genedata[trna_id]["tRNA_anticodon"] = anticodon
+                        if debug:
+                            print(f"DEBUG: found and adding tRNA_codon for {trna_id} with {anticodon} -> {codon}")
+                    else:
+                        print(f"WARNING: No anticodon found in {note} for {trna_id}")            
+        if os.path.exists(temp_tRNA.name):
+            os.unlink(temp_tRNA.name)
     return genedata
 
 
@@ -402,7 +458,6 @@ def main():
         default="bigquery",
         help="Output folder for gene info, exons, introns, transcripts, proteins",
     )
-
     args = parser.parse_args()
     if args.debug:
         print(args)
@@ -410,12 +465,15 @@ def main():
         print(
             f"Reading GFF files from {args.gff_dir} and DNA files from '{args.dna_dir}'"
         )
+    if not os.path.exists(args.outdir):
+        os.mkdir(args.outdir)
     output_files = [
         "gene_info.csv",
         "gene_exons.csv",
         "gene_CDS.csv",
         "gene_introns.csv",
         "gene_transcripts.csv",
+        "gene_trnas.csv",
         "gene_proteins.csv",
     ]
     with ExitStack() as stack:
@@ -423,12 +481,13 @@ def main():
             stack.enter_context(open(f"{args.outdir}/{filename}", "w", newline=""))
             for filename in output_files
         ]
-        genefile, exonfile, CDSfile, intronsfile, mrnafile, pepfile = files
+        genefile, exonfile, CDSfile, intronsfile, mrnafile, trnafile, pepfile = files
         genecsv = csv.writer(genefile)
         exoncsv = csv.writer(exonfile)
         CDScsv = csv.writer(CDSfile)
         introncsv = csv.writer(intronsfile)
         mrnacsv = csv.writer(mrnafile)
+        trnacsv = csv.writer(trnafile)
         pepcsv = csv.writer(pepfile)
         genecsv.writerow(
             [
@@ -452,6 +511,13 @@ def main():
                 "is_partial",
                 "has_start_codon",
                 "has_stop_codon",
+            ]
+        )
+        trnacsv.writerow(
+            [
+                "gene_id",
+                "amino_acid",
+                "codon"
             ]
         )
         exoncsv.writerow(
@@ -547,6 +613,14 @@ def main():
                         gene["type"],
                     ]
                 )
+                if gene["type"] == "tRNA_gene":
+                    trnacsv.writerow(
+                        [
+                            genename,
+                            gene["tRNA_amino_acid"],
+                            gene["tRNA_codon"]
+                        ]
+                    )
                 # consider saving space by only encoding strand on the gene level
                 for transcriptname, transcript in gene["transcripts"].items():
                     mrnacsv.writerow(
