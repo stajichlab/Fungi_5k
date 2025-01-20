@@ -8,20 +8,7 @@ library(ggplot2)
 library(RColorBrewer)
 library(cowplot)
 
-library(emojifont)
 pdf("plots/genome_size_explore.pdf")
-set.seed(1234)
-symbls <- c('fa-github', 'fa-binoculars', 'fa-twitter', 'fa-android', 'fa-coffee', 
-            'fa-cube', 'fa-ambulance','fa-check','fa-cutlery','fa-cogs','fa-dot-circle-o','fa-car',
-            'fa-building','fa-fire', 'fa-flag','fa-female','fa-gratipay','fa-heart','fa-magnet',
-            'fa-lock','fa-map','fa-puzzle-piece','fa-shopping-cart','fa-star','fa-sticky-note',
-            'fa-stop-circle-o','fa-volume-down','fa-anchor', 'fa-beer','fa-book','fa-cloud',
-            'fa-comment','fa-eject','fa-chrome','fa-child','fa-bomb', 'fa-certificate',
-            'fa-desktop','fa-fire-extinguisher','fa-diamond')
-
-idx <- order(symbls)
-fontarray <- fontawesome(symbls)
-k <- length(fontarray)
 
 # to use a database file already created by 
 con <- dbConnect(duckdb(), dbdir="intronDB/introns.duckdb", read_only = TRUE)
