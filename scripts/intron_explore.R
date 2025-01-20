@@ -118,14 +118,15 @@ sumbysubphylum_freq <- intronfreq %>%
 
 
 intronlensql="
-SELECT il.*, PHYLUM, SUBPHYLUM, CLASS, s.ORDER, GENUS, s.SPECIES, s.STRAIN
-FROM species s,
+SELECT il.*, PHYLUM, SUBPHYLUM, CLASS, s.ORDER, GENUS, s.SPECIES, s.STRAIN, 
+      asm_stats.TOTAL_LENGTH, asm_stats.CONTIG_COUNT
+FROM species s, asm_stats,
  (SELECT LOCUSTAG, avg(intron_length) as mean_length, median(intron_length) as median_length
  FROM (SELECT substring(transcript_id,1,8) as LOCUSTAG, 
         (gene_introns.end - gene_introns.start) as intron_length
       FROM gene_introns) 
   GROUP BY LOCUSTAG) as il
-WHERE s.LOCUSTAG = il.LOCUSTAG
+WHERE s.LOCUSTAG = il.LOCUSTAG and asm_stats.LOCUSTAG = s.LOCUSTAG
 "
 
 intronlen <- dbGetQuery(con, intronlensql)
@@ -141,13 +142,12 @@ intronlen_sum <- intronlen %>%
              ilen_upper_limit = ilen_mean + ilen_se,
              ilen_lower_limit = ilen_mean - ilen_se,
              ilen_total = sum(mean_length),
-             ilen_median = median(mean_length)) %>%
-  filter(ilen_N >= 3)
+             ilen_median = median(mean_length)) %>% filter(ilen_N >= 3)
    
 
 
 subphylumdata <- sumbysubphylum_freq %>% inner_join(intronlen_sum %>% 
-                                                      select(-c(PHYLUM)),by="SUBPHYLUM")
+                                                select(-c(PHYLUM)),by="SUBPHYLUM")
 
 subphylumdata$SUBPHYLUM = factor(subphylumdata$SUBPHYLUM)
 subphylumdata$PHYLUM = factor(subphylumdata$PHYLUM, 
@@ -203,6 +203,24 @@ p <- ggplot(plotdata,aes(x=freq_mean,
 p
 
 ggsave("plots/intron_size_freq.pdf",p,width=15,height=10)
+
+intronlen$PHYLUM <- factor(intronlen$PHYLUM)
+intronlen$SUBPHYLUM <- factor(intronlen$SUBPHYLUM)
+
+p2 <- ggplot(intronlen,aes(x=TOTAL_LENGTH,
+                         y=mean_length,
+                         color=SUBPHYLUM,
+                         shape=PHYLUM)) +
+  scale_shape_manual(values=1:nlevels(intronlen$PHYLUM)) + 
+  scale_colour_manual(values = mycolors) +
+  scale_fill_manual(values = mycolors) +
+  geom_point() +
+  xlab("Genome Size") +
+  ylab("Mean intron length") + scale_x_log10() +
+  theme_cowplot(12) 
+p2
+
+ggsave("plots/intronlen_vs_genomesize.pdf",p2,width=10,height=10)
 
 sumbysubphylum_count <- intronct %>% left_join(speciesinfo,by="LOCUSTAG") %>%
   group_by(SUBPHYLUM) %>% summarise(ct_mean = mean(intron_count),
