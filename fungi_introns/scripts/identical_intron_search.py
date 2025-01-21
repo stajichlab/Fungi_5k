@@ -24,10 +24,11 @@ def main():
                                 compression="gzip", names = ['query', 'qlength', 'subject', 'slength', 'identity', 'alnlen', 'mismatches', 'gapopen', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore'])
                 con.register("df_view", df)
                 print(df)
-                con.execute("CREATE TABLE intron_matches AS SELECT *, substring(query,1,8) as qlocus, substring(subject,1,8) as slocus FROM df_view")        
-                con.execute("CREATE INDEX idx_query ON intron_matches(query)")
-                con.execute("CREATE INDEX idx_subject ON intron_matches(subject)")
-                con.execute("CREATE INDEX idx_identity ON intron_matches(identity)")
+                con.execute("""
+                            CREATE TABLE intron_matches AS 
+                            SELECT *, substring(query,1,8) as qlocus, substring(subject,1,8) as slocus 
+                            FROM df_view WHERE identity >= 90 AND query != subject
+                            """)
                 
     with duckdb.connect(args.db) as con:
         df2 = con.sql("""
