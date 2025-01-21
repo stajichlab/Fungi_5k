@@ -9,8 +9,7 @@ duckdb -c "CREATE TABLE IF NOT EXISTS species AS SELECT * FROM read_csv_auto('sa
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_species_locustag ON species(LOCUSTAG)" $DBDIR/$DBNAME.duckdb
 
 # build asm stats table
-duckdb -c "DROP TABLE IF EXISTS asm_stats" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE TABLE IF NOT EXISTS asm_stats AS SELECT * FROM read_csv_auto('bigquery/asm_stats.csv')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE TABLE IF NOT EXISTS asm_stats AS SELECT * FROM read_csv_auto('bigquery/asm_stats.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_asmstats_locustag ON asm_stats(LOCUSTAG)" $DBDIR/$DBNAME.duckdb
 
 # build proteins
@@ -19,7 +18,7 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_proteins_locustag ON gene_protein
 
 # Add tRNA
 duckdb -c "CREATE TABLE IF NOT EXISTS gene_trna AS SELECT *, substring(gene_id,1,8) as locustag FROM read_csv_auto('bigquery/gene_trnas.csv.gz')" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE INDEX IF NOT EXISTS idx_tRNA_locustag ON gene_trna(locustag)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_trna_locustag ON gene_trna(locustag)" $DBDIR/$DBNAME.duckdb
 
 # Add transcripts
 duckdb -c "CREATE TABLE IF NOT EXISTS gene_transcripts AS SELECT *, substring(gene_id,1,8) as locustag FROM read_csv_auto('bigquery/gene_transcripts.csv.gz')" $DBDIR/$DBNAME.duckdb
