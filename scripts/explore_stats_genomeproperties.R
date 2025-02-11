@@ -136,7 +136,7 @@ mucoro <- asmstat_res %>% filter(PHYLUM=="Mucoromycota")
   theme_cowplot(12) + theme(legend.position="bottom") + scale_x_log10()
 
   countglen_p
-  ggsave(file.path(statsplotdir,sprintf("genecount_gene_length_mucoromycota_%s.pdf",subphylum)),countglen_p,width=12,height=8)
+  ggsave(file.path(statsplotdir,"genecount_gene_length_mucoromycota.pdf"),countglen_p,width=12,height=8)
 
 zoopag <- asmstat_res %>% filter(PHYLUM=="Zoopagomycota")
 # switch this around and just plot all Zooags together

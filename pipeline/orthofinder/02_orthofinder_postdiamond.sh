@@ -1,5 +1,5 @@
 #!/usr/bin/bash -l
-#SBATCH --time 5-0:0:0 -p epyc -N 1 -n 32 --mem 900gb --out logs/orthofinder_build.%A.log
+#SBATCH --time 5-0:0:0 -p epyc -N 1 -n 32 --mem 256gb --out logs/orthofinder_build.%A.log
 ulimit -Sn
 ulimit -Hn
 ulimit -n 200000
