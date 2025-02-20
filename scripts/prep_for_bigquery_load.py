@@ -8,8 +8,8 @@ outdir = 'bigquery'
 def merops(indir="results/function/merops",force=False):
     # load MEROPS data
     outfile = os.path.join(outdir,os.path.basename(indir) + ".csv")
-    if os.path.exists(outfile) and not force:
-        return
+    if (os.path.exists(outfile) or os.path.exists(outfile + ".gz") )and not force:
+        return 
     with open(outfile, "w", newline='') as of:
         writer = csv.writer(of)
         writer.writerow(['species_prefix','protein_id','merops_id','percent_identity','aln_length','mismatches','gap_openings','q_start','q_end',
@@ -27,7 +27,7 @@ def merops(indir="results/function/merops",force=False):
 def cazy_overview(indir="results/function/cazy",force=False):
     # load CAZY data
     outfile = os.path.join(outdir,os.path.basename(indir) + ".overview.csv")
-    if os.path.exists(outfile) and not force:
+    if (os.path.exists(outfile) or os.path.exists(outfile + ".gz") ) and not force:
         return
     with open(outfile, "w", newline='') as of:
         writer = csv.writer(of)
@@ -48,7 +48,7 @@ def cazy_overview(indir="results/function/cazy",force=False):
 def cazy_hmm(indir="results/function/cazy",force=False):
     # load CAZY data
     outfile = os.path.join(outdir,os.path.basename(indir) + ".cazymes_hmm.csv")
-    if os.path.exists(outfile) and not force:
+    if (os.path.exists(outfile) or os.path.exists(outfile + ".gz") ) and not force:
         return
     with open(outfile, "w", newline='') as of:
         writer = csv.writer(of)
@@ -70,7 +70,7 @@ def cazy_hmm(indir="results/function/cazy",force=False):
 def signalp(indir="results/function/signalp",force=False):
     # load signalp data
     outfile = os.path.join(outdir,os.path.basename(indir) + ".signal_peptide.csv")
-    if os.path.exists(outfile) and not force:
+    if (os.path.exists(outfile) or os.path.exists(outfile + ".gz") ) and not force:
         return
     with open(outfile, "w", newline='') as of:
         writer = csv.writer(of)
@@ -88,7 +88,49 @@ def signalp(indir="results/function/signalp",force=False):
                         newrow = [prefix, id, row[3], row[4], row[5]]
                         writer.writerow(newrow)
 
+def tmhmm(indir="results/function/tmhmm",force=False):
+    outfile = os.path.join(outdir,os.path.basename(indir) + ".csv")
+    if (os.path.exists(outfile) or os.path.exists(outfile + ".gz") ) and not force:
+        return
+    with open(outfile, "w", newline='') as of:
+        writer = csv.writer(of)
+        writer.writerow(['species_prefix','protein_id','len','ExpAA','First60','PredHel','Topology'])
+        for file in os.listdir(indir):
+            if file.endswith(".tmhmm_short.tsv.gz"):
+                with gzip.open(os.path.join(indir,file), "rt") as infh:
+                    reader = csv.reader(infh, delimiter='\t')
+                    for row in reader:
+                        if row[0].startswith('#'):
+                            continue
+                        id = row[0]
+                        prefix = id.split('_')[0]
+                        newrow = [prefix,id]
+                        for n in row[1:]:
+                            (key,value) = n.split('=')
+                            newrow.append(value)
+                        if newrow[-2] == '0':
+                            continue
+
+                        writer.writerow(newrow)
+
+def wolfpsor(indir="results/function/wolfpsort",force=False):
+    print('not running yet')
+
+def targetp(indir="results/function/targetp",force=False):
+    print('not running yet')
+
+def kegg(indir="results/function/kegg",force=False):
+    print('not running yet')
+
+def busco(indir="results/stats/busco",force=False):
+    print('not running yet')
 merops()
 cazy_overview()
 cazy_hmm()
 signalp()
+#kegg()
+
+tmhmm()
+wolfpsort()
+#busco()
+#targetp()

@@ -63,3 +63,7 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_aa_locustag ON aa_frequency(species_pr
 # Add gene distance
 duckdb -c "CREATE TABLE IF NOT EXISTS gene_pairwise_distances AS SELECT * FROM read_csv_auto('bigquery/gene_pairwise_distances.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_pw_locustag ON gene_pairwise_distances(species_prefix)" $DBDIR/$DBNAME.duckdb
+
+# add tmmhmm
+duckdb -c "CREATE TABLE IF NOT EXISTS tmhmm AS SELECT * FROM read_csv('bigquery/tmhmm.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_tmhmm_locus ON tmhmm(species_prefix)')" $DBDIR/$DBNAME.duckdb
