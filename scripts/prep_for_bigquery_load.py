@@ -113,8 +113,29 @@ def tmhmm(indir="results/function/tmhmm",force=False):
 
                         writer.writerow(newrow)
 
-def wolfpsor(indir="results/function/wolfpsort",force=False):
-    print('not running yet')
+def wolfpsort(indir="results/function/wolfpsort",force=False,onlybest=True):
+    outfile = os.path.join(outdir,os.path.basename(indir) + ".csv")
+    if (os.path.exists(outfile) or os.path.exists(outfile + ".gz") ) and not force:
+        return
+    with open(outfile, "w", newline='') as of:
+        writer = csv.writer(of)
+        writer.writerow(['species_prefix','protein_id','localization','score'])
+        for file in os.listdir(indir):
+            if file.endswith(".wolfpsort.results.txt.gz"):
+                with gzip.open(os.path.join(indir,file), "rt") as infh:                    
+                    for line in infh:
+                        if line.startswith('#'):
+                            continue
+                        (id,resultstr) = line.strip().split(' ',1)
+                        results = resultstr.split(', ')
+                        prefix = id.split('_')[0]
+                        for scoring in results:
+                            (code,score) = scoring.split(' ')                        
+                            newrow = [prefix,id,code,score]
+                            writer.writerow(newrow)
+                            if onlybest:
+                                break
+
 
 def targetp(indir="results/function/targetp",force=False):
     print('not running yet')
@@ -124,6 +145,10 @@ def kegg(indir="results/function/kegg",force=False):
 
 def busco(indir="results/stats/busco",force=False):
     print('not running yet')
+
+
+# no pfam as we run this from Toronto dataset instead of local generation
+
 merops()
 cazy_overview()
 cazy_hmm()

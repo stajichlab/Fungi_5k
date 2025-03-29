@@ -156,6 +156,118 @@ ggsave("plots/MEROPS_CAZY_profile_secreted.pdf",p,width=10,height=8)
 
 # geom_point(data=asm_stats, aes(y=TOTAL_LENGTH/1000000, x=SUBPHYLUM, fill=SUBPHYLUM),size=2) +
 
+nb.cols <- length(unique(cazymerops$PHYLUM))
+mycolors <- colorRampPalette(brewer.pal(9, "Set1"))(nb.cols)
+
+
+p <- ggplot(cazymerops) + geom_point(aes(x=cazy_count,
+                             y=merops_count,
+                             fill=PHYLUM,
+                             color=PHYLUM), alpha=0.75) +
+  scale_colour_manual(values = mycolors) +
+  scale_fill_manual(values = mycolors) +
+  ylab("MEROPS Count") +
+  xlab("CAZY Count") +
+  theme_cowplot(12) + 
+  ggtitle("MEROPS vs CAZY counys for all proteins") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size=14))
+
+
+p
+
+digestivequery_sql = 
+"
+SELECT ssp.LOCUSTAG, ssp.ssp_count, secreted.secreted_count, de.de_count, merops.merops_count, funguild.trophicMode, species.PHYLUM, species.SUBPHYLUM, species.SPECIES, genes.gene_count,
+       asm_stats.TOTAL_LENGTH
+FROM 
+
+(SELECT gene_info.LOCUSTAG, COUNT(DISTINCT gene_info.gene_id) AS secreted_count
+FROM signalp, gene_info, gene_proteins
+WHERE signalp.protein_id = gene_info.gene_id AND gene_proteins.gene_id = gene_info.gene_id AND
+signalp.probability > 0.60 AND signalp.protein_id not in (select cazy.protein_id FROM cazy where cazy.coverage > 0.50 AND cazy.evalue < 1e-5 AND cazy.HMM_id NOT LIKE 'GT%' AND cazy.HMM_id NOT LIKE 'fungi_doc%')
+GROUP BY LOCUSTAG) as secreted,
+
+(SELECT gene_info.LOCUSTAG, COUNT(DISTINCT gene_info.gene_id) AS ssp_count
+FROM signalp, gene_info, gene_proteins
+WHERE signalp.protein_id = gene_info.gene_id AND gene_proteins.gene_id = gene_info.gene_id AND
+signalp.probability > 0.60 AND gene_proteins.length < 300 
+AND signalp.protein_id not in (select cazy.protein_id FROM cazy where cazy.coverage > 0.50 AND cazy.evalue < 1e-5 AND cazy.HMM_id NOT LIKE 'GT%' AND cazy.HMM_id NOT LIKE 'fungi_doc%')
+GROUP BY LOCUSTAG) as ssp,
+
+(SELECT gene_info.LOCUSTAG, COUNT(DISTINCT gene_info.gene_id) AS de_count
+FROM cazy, gene_info, gene_proteins
+WHERE cazy.protein_id = gene_info.gene_id AND gene_proteins.gene_id = gene_info.gene_id AND
+cazy.coverage > 0.50 AND cazy.evalue < 1e-5 AND cazy.HMM_id NOT LIKE 'GT%' AND cazy.HMM_id NOT LIKE 'fungi_doc%'
+GROUP BY LOCUSTAG) as de,
+
+(SELECT gene_info.LOCUSTAG, COUNT(DISTINCT gene_info.gene_id) AS merops_count
+FROM merops, gene_info, gene_proteins
+WHERE merops.protein_id = gene_info.gene_id AND gene_proteins.gene_id = gene_info.gene_id AND
+merops.aln_length / gene_proteins.length > 0.50 AND merops.evalue < 1e-10
+GROUP BY LOCUSTAG) as merops,
+
+(SELECT gene_info.LOCUSTAG, COUNT(DISTINCT gene_info.gene_id) AS gene_count
+FROM gene_info
+GROUP BY LOCUSTAG) as genes,
+
+funguild, species, asm_stats
+
+WHERE ssp.LOCUSTAG = de.LOCUSTAG AND ssp.LOCUSTAG = merops.LOCUSTAG AND 
+ssp.LOCUSTAG = funguild.species_prefix AND species.LOCUSTAG = ssp.LOCUSTAG AND
+genes.LOCUSTAG = ssp.LOCUSTAG AND asm_stats.LOCUSTAG = genes.LOCUSTAG and secreted.LOCUSTAG = ssp.LOCUSTAG
+"
+
+
+
+digestive <- dbGetQuery(con, digestivequery_sql)
+head(digestive)
+digestive %>% filter(LOCUSTAG == "Podan3")
+
+zygoonly = digestive %>% filter(PHYLUM == "Zoopagomycota" | PHYLUM == "Mucoromycota")
+nb.cols <- length(unique(zygoonly$SUBPHYLUM))
+mycolors <- colorRampPalette(brewer.pal(9, "Set1"))(nb.cols)
+
+
+p <- ggplot(zygoonly) + geom_point(aes(x=log(de_count / (secreted_count - de_count))/log(10),
+                                         y=log(ssp_count / (secreted_count - ssp_count))/log(10),
+                                         fill=SUBPHYLUM,
+                                         color=SUBPHYLUM,
+                                         size=gene_count,
+                                         ), alpha=0.75) +
+  scale_colour_manual(values = mycolors) +
+  scale_fill_manual(values = mycolors) +
+  ylab("SSP Count/(Total - SSP Count)") +
+  xlab("DE Count/(Total - DE Count)") +
+  theme_cowplot(12) + 
+  ggtitle("SSP vs CAZY counts, Mucoromycota and Zoopagomycota") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size=14))
+
+
+p
+ggsave("plots/1kfg_zygo_SSP_vs_DE_gene_count.pdf",p,width=10,height=8)
+nb.cols <- length(unique(digestive$PHYLUM))
+mycolors <- colorRampPalette(brewer.pal(9, "Set1"))(nb.cols)
+
+p <- ggplot(digestive) + geom_point(aes(x=log(de_count / (secreted_count - de_count))/log(10),
+                                        y=log(ssp_count / (secreted_count - ssp_count))/log(10),
+                                        fill=PHYLUM,
+                                        color=PHYLUM,
+                                        size=gene_count,
+), alpha=0.75) +
+  scale_colour_manual(values = mycolors) +
+  scale_fill_manual(values = mycolors) +
+  ylab("SSP Count/(Total - SSP Count)") +
+  xlab("DE Count/(Total - DE Count)") +
+  theme_cowplot(12) + 
+  ggtitle("SSP vs CAZY counts for all proteins") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size=14))
+
+
+p
+ggsave("plots/1kfg_all_SSP_vs_DE_gene_count.pdf",p,width=10,height=8)
+dbDisconnect(con, shutdown = TRUE)
+
+
 dbDisconnect(con, shutdown = TRUE)
 
 

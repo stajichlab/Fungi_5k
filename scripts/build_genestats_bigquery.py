@@ -149,6 +149,12 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
                     "exon": [],
                     "CDS": [],
                     "intron": [],
+                    "CDS_seq": {
+                        "id": mrna_id,
+                        "length": None,
+                        "md5checksum": None,
+                        "cdsseq": None,
+                    },
                     "protein": {
                         "id": f"{mrna_id}.protein",
                         "parent": mrna_id,
@@ -188,6 +194,11 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
                     "has_stop_codon": "NULL",
                     "exon": [],
                     "intron": [],
+                    "CDS_seq": {
+                            'length': None,
+                            'cdsseq': None,
+                            'md5checksum': None,
+                        }
                     }
             elif ftype in ("exon", "CDS"):
                 if "Parent" not in group_data:
@@ -384,6 +395,11 @@ def parse_gff(gff, dna="", codon_table=1, debug=False):
                 transcript["protein"]["md5checksum"] = hashlib.md5(
                     str(proteinseq).encode()
                 ).hexdigest()
+                transcript["CDS_seq"]["cdsseq"] = CDS_sequence
+                transcript["CDS_seq"]["length"] = len(CDS_sequence)
+                transcript["CDS_seq"]["md5checksum"] = hashlib.md5(
+                    str(CDS_sequence).encode()
+                ).hexdigest()
 
     if tRNA_gff:
         temp_tRNA.close()
@@ -492,7 +508,7 @@ def main():
         genecsv.writerow(
             [
                 "gene_id",
-                "species_prefix",
+                "LOCUSTAG",
                 "chrom",
                 "start",
                 "end",
@@ -511,6 +527,9 @@ def main():
                 "is_partial",
                 "has_start_codon",
                 "has_stop_codon",
+                "CDS_sequence",
+                "CDS_length",
+                "md5checksum"
             ]
         )
         trnacsv.writerow(
@@ -563,6 +582,7 @@ def main():
         )
         pepcsv.writerow(
             [
+                "gene_id",
                 "protein_id",
                 "transcript_id",
                 "length",
@@ -610,7 +630,7 @@ def main():
                         gene["start"],
                         gene["end"],
                         gene["strand"],
-                        gene["type"],
+                        gene["type"]
                     ]
                 )
                 if gene["type"] == "tRNA_gene":
@@ -634,6 +654,9 @@ def main():
                             transcript["is_partial"],
                             transcript["has_start_codon"],
                             transcript["has_stop_codon"],
+                            transcript["CDS_seq"]["cdsseq"],
+                            transcript["CDS_seq"]["length"],
+                            transcript["CDS_seq"]["md5checksum"]
                         ]
                     )
                     if "exon" in transcript:
@@ -687,6 +710,7 @@ def main():
                     if "protein" in transcript:
                         pepcsv.writerow(
                             [
+                                genename,
                                 transcript["protein"]["id"],
                                 transcriptname,
                                 transcript["protein"]["length"],
