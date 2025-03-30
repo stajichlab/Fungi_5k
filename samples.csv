@@ -2731,6 +2731,7 @@ GCA_036810365.1_ASM3681036v1,Kwoniella sp. B9012,B9013,PRJNA227933,1423914,dikar
 GCA_036287355.1_ASM3628735v1,Kwoniella sp. CBS 6097,CBS 6097,PRJNA660472,2770021,dikarya,Basidiomycota,Agaricomycotina,Tremellomycetes,,Tremellales,Cryptococcaceae,Kwoniella,Kwoniella sp. CBS 6097,FBFDB5F9
 GCA_036428585.1_ASM3642858v1,Kwoniella sp. CBS 9459,CBS 9459,PRJNA660483,2770022,dikarya,Basidiomycota,Agaricomycotina,Tremellomycetes,,Tremellales,Cryptococcaceae,Kwoniella,Kwoniella sp. CBS 9459,FBC96E1F
 GCA_036428645.1_ASM3642864v1,Kwoniella sp. DSM 27419,DSM 27419,PRJNA660484,2770024,dikarya,Basidiomycota,Agaricomycotina,Tremellomycetes,,Tremellales,Cryptococcaceae,Kwoniella,Kwoniella sp. DSM 27419,F441B937
+GCA_009805535.1_ASM980553v1,Laburnicola sp. JP-R-44,JP-R-44,PRJNA517533,2511225,dikarya,Ascomycota,Pezizomycotina,Dothideomycetes,Pleosporomycetidae,Pleosporales,Didymosphaeriaceae,Laburnicola,Laburnicola sp. JP-R-44,FFFC336A
 GCA_031010545.1_ASM3101054v1,Laburnicola sp. JP_R_19,JP_R_19,PRJNA517533,2600313,dikarya,Ascomycota,Pezizomycotina,Dothideomycetes,Pleosporomycetidae,Pleosporales,Didymosphaeriaceae,Laburnicola,Laburnicola sp. JP_R_19,F8C7BE3F
 GCA_014281115.1_ASM1428111v1,Laburnicola sp. R22_1,R22_1,PRJNA517533,2761086,dikarya,Ascomycota,Pezizomycotina,Dothideomycetes,Pleosporomycetidae,Pleosporales,Didymosphaeriaceae,Laburnicola,Laburnicola sp. R22_1,F9CEEE6F
 GCA_000827195.1_Laccaria_amethystina_LaAM-08-1_v1.0,Laccaria amethystina LaAM-08-1,LaAM-08-1,PRJNA196025,1095629,dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Hydnangiaceae,Laccaria,Laccaria amethystina,FEA66B52
@@ -2921,6 +2922,7 @@ GCF_029851405.1_ASM2985140v1,Lichtheimia ornata,CBS 291.66,PRJNA909826,688661,mu
 GCA_008728235.1_ASM872823v1,Lichtheimia ramosa,KPH11,PRJNA487495,688394,mucoromycota,Mucoromycota,Mucoromycotina,Mucoromycetes,,Mucorales,Lichtheimiaceae,Lichtheimia,Lichtheimia ramosa,F2BCAD6C
 GCA_023629895.1_ASM2362989v1,Lichtheimia sp. PT1902,PT1902,PRJNA833221,2939534,mucoromycota,Mucoromycota,Mucoromycotina,Mucoromycetes,,Mucorales,Lichtheimiaceae,Lichtheimia,Lichtheimia sp. PT1902,FA7CD956
 GCA_022814235.1_ASM2281423v1,Lignoscripta atroalba,T1887,PRJNA795879,2918522,dikarya,Ascomycota,Pezizomycotina,Lecanoromycetes,Ostropomycetidae,Trapeliales,Trapeliaceae,Lignoscripta,Lignoscripta atroalba,FAABF78A
+GCA_000743315.1_LigRhi1.0,Lignosus rhinocerotis TM02,TM02,PRJNA212725,1379160,dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,,Polyporales,Polyporaceae,Lignosus,Lignosus rhinocerus,F6DB7A21
 GCA_002233555.1_ASM223355v1,Limonomyces culmigenus,CBS 661.85,PRJNA282891,228944,dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,,Corticiales,Corticiaceae,Limonomyces,Limonomyces culmigenus,F549BA07
 GCF_038497785.1_Lipsmi1,Limtongia smithiae,NRRL Y-17922,PRJNA1069702,1125753,dikarya,Ascomycota,Saccharomycotina,Lipomycetes,,Lipomycetales,Lipomycetaceae,Limtongia,Limtongia smithiae,FC7F6D4F
 GCA_030572215.1_ASM3057221v1,Limtongozyma cylindracea,NRRL Y-17506,PRJNA736342,44322,dikarya,Ascomycota,Saccharomycotina,Pichiomycetes,,Serinales,Debaryomycetaceae,Limtongozyma,Limtongozyma cylindracea,F9E1F071
@@ -4035,6 +4037,7 @@ GCA_030770415.1_LANL_DS1613_1.0,Pleoardoris graminearum,DS1613,PRJNA966141,30442
 GCA_019455505.1_ASM1945550v1,Pleochaeta shiraiana,HAL3440F,PRJNA749662,57462,dikarya,Ascomycota,Pezizomycotina,Leotiomycetes,,Erysiphales,Erysiphaceae,Pleochaeta,Pleochaeta shiraiana,FA659A8C
 GCA_010093715.1_Plesi1,Pleomassaria siparia CBS 279.74,CBS 279.74,PRJNA196086,1314801,dikarya,Ascomycota,Pezizomycotina,Dothideomycetes,Pleosporomycetidae,Pleosporales,Pleomassariaceae,Pleomassaria,Pleomassaria siparia,FA9400C6
 GCA_026027315.1_ASM2602731v1,Pleopsidium flavum,Spribille 41593_TS-e1965,PRJNA833438,318763,dikarya,Ascomycota,Pezizomycotina,Lecanoromycetes,Acarosporomycetidae,Acarosporales,Acarosporaceae,Pleopsidium,Pleopsidium flavum,F4E3B9F1
+GCA_000263175.2_Pleo_1.0,Pleosporales sp. UM 1110 2012,UM 1110,PRJNA89471,1162309,dikarya,Ascomycota,Pezizomycotina,Dothideomycetes,Pleosporomycetidae,Pleosporales,Phaeosphaeriaceae,,Phaeosphaeriaceae sp. UM 1110,F8718AD1
 GCA_030052745.1_ASM3005274v1,Pleurostoma richardsiae,EXF-13308,PRJNA854364,41990,dikarya,Ascomycota,Pezizomycotina,Sordariomycetes,Sordariomycetidae,Calosphaeriales,Pleurostomataceae,Pleurostoma,Pleurostoma richardsiae,F83F303D
 GCA_017312325.1_RS_HGAP_Assembly.3,Pleurotus citrinopileatus,HfpriPC05-1-Y1,PRJDB7310,98342,dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Pleurotaceae,Pleurotus,Pleurotus citrinopileatus,F99D3CEB
 GCA_019677325.2_ASM1967732v2,Pleurotus cornucopiae,CCMSSC00406,PRJNA593973,5321,dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Pleurotaceae,Pleurotus,Pleurotus cornucopiae,F4A5683A
@@ -4044,6 +4047,7 @@ GCA_019395345.1_ASM1939534v1,Pleurotus floridanus,CCMSSC00406,PRJNA449255,98346,
 GCA_032158425.1_ASM3215842v1,Pleurotus giganteus,PG46,PRJNA896531,1156456,dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Pleurotaceae,Pleurotus,Pleurotus giganteus,FEE42426
 GCA_005298045.1_ASM529804v1,Pleurotus ostreatoroseus,DPUA 1720,PRJNA507735,2048520,dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Pleurotaceae,Pleurotus,Pleurotus ostreatoroseus,F3716721
 GCF_014466165.1_ASM1446616v1,Pleurotus ostreatus,PC9,PRJNA647232,5322,dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Pleurotaceae,Pleurotus,Pleurotus ostreatus,F4DD442B
+GCA_024196135.1_ASM2419613v1,Pleurotus ostreatus Saccharomyces fusant,D1-P,PRJNA783992,2899117,dikarya,,,,,,,,Pleurotus ostreatus Saccharomyces fusant,FF473FF1
 GCA_003313735.1_ASM331373v1,Pleurotus platypus,MG11,PRJNA454572,2015914,dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Pleurotaceae,Pleurotus,Pleurotus platypus,F7968771
 GCA_012980535.1_ASM1298053v1,Pleurotus pulmonarius,PM_ss5,PRJNA523390,28995,dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Pleurotaceae,Pleurotus,Pleurotus pulmonarius,FBBC54B5
 GCA_002583695.1_PsmonoN60v_1.0,Pleurotus salmoneostramineus,N60,PRJDB6242,64638,dikarya,Basidiomycota,Agaricomycotina,Agaricomycetes,Agaricomycetidae,Agaricales,Pleurotaceae,Pleurotus,Pleurotus salmoneostramineus,F5605091
@@ -5802,6 +5806,7 @@ GCA_030563365.1_ASM3056336v1,Candida xylanilytica,NBRC 106499,PRJNA736342,679938
 GCA_030573155.1_ASM3057315v1,Candida xyloterini,CBS 11547,PRJNA736342,641392,dikarya,Ascomycota,Saccharomycotina,Pichiomycetes,,Pichiales,Pichiaceae,Ogataea,Candida xyloterini,F36F1E09
 GCA_030569295.1_ASM3056929v1,Candida yuanshanica,CBS 10589,PRJNA736342,639368,dikarya,Ascomycota,Saccharomycotina,Saccharomycetes,,Phaffomycetales,Wickerhamomycetaceae,Wickerhamomyces,Candida yuanshanica,F79D1B3C
 GCA_031851675.1_ASM3185167v1,Candida zeylanoides,UCD849,PRJNA1016273,5493,dikarya,Ascomycota,Saccharomycotina,Pichiomycetes,,Serinales,Debaryomycetaceae,Kurtzmaniella,Candida zeylanoides,FE426943
+GCA_011316235.1_Humgr2.0,Humicola grisea var. thermoidea,UFV,PRJNA482412,5528,dikarya,Ascomycota,,Sordariomycetes,,Sordariales,Chaetomiaceae,Trichocladium,Trichocladium griseum,F44D730E
 GCA_018873225.1_ASM1887322v1,Phialemoniopsis sp. UDSM-2020,UDSM-2020,PRJNA684579,2796495,dikarya,Ascomycota,Pezizomycotina,Sordariomycetes,,,Thyridiaceae,Thyridium,Phialemoniopsis sp. UDSM-2020,F7925BC3
 GCA_000825705.1_Allpaths-LG,Torrubiella hemipterigena,,PRJEB7402,1531966,dikarya,Ascomycota,Pezizomycotina,Sordariomycetes,Hypocreomycetidae,Hypocreales,Clavicipitaceae,,Torrubiella hemipterigena,FF139416
 GCA_002224055.1_ASM222405v1,fungal sp. ARF18,ARF18,PRJNA228950,1427494,fungi,Ascomycota,Pezizomycotina,,,,,,Pezizomycotina sp. ARF18,FB44BE69
