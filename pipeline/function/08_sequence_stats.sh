@@ -40,5 +40,16 @@ if [ ! -s bigquery/$EXT.gz ]; then
         ls -U $SCRATCH/ | grep "$EXT" | xargs -I {} sh -c "tail -n +2 $SCRATCH/{}/${FNAME} >> bigquery/${FNAME}"
         pigz -f bigquery/${FNAME}
     done
-
+fi
+EXT=chrom_info.csv
+if [ ! -s bigquery/$EXT.gz ]; then
+    TEMP=$SCRATCH/chrom
+    mkdir -p $TEMP
+    LEN=$(wc -l samples.csv | awk '{print $1}')
+    LEN=$(expr $LEN - 1)
+    seq 0 1 $LEN | parallel -j $CPU  ./scripts/collect_chrom_info.py --run_with {} --outfile $TEMP/{}.${EXT}
+    FIRST=$(ls -U $TEMP | head -n 1)
+    head -n 1 $TEMP/$FIRST > bigquery/$EXT
+    ls -U $TEMP | xargs -I {} sh -c "tail -n +2 $TEMP/{} >> bigquery/$EXT"
+    pigz -f bigquery/$EXT
 fi

@@ -20,7 +20,7 @@ dir.create(statsplotdir, showWarnings = FALSE)
 
 pdf(file.path(statsplotdir,"misc_plots.pdf"))
 # to use a database file already created by 
-con <- dbConnect(duckdb(), dbdir=file.path(DBDIR,DBNAME), read_only = TRUE)
+con <- dbConnect(duckdb(), dbdir=file.path(DBDIR,DBNAME), read_only=TRUE)
 
 densitystat_sql ="
 SELECT sp.*, stats.GC_PERCENT, stats.TOTAL_LENGTH, gene_count, mean_gene_length,
@@ -60,7 +60,7 @@ intergendist_p
 
 
 cdsdensitystat_sql ="
-SELECT sp.*, pw_dist.chrom, pw_dist.coding_mean_density
+SELECT sp.*, pw_dist.chrom, pw_dist.coding / 
 FROM 
 species as sp,
 ( SELECT LOCUSTAG, chrom, MEAN(gene_length) as (SELECT LOCUSTAG, (1 + end - start) as gene_length, chrom

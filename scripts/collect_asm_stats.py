@@ -48,28 +48,42 @@ def main():
             species_string = species_string.replace(' ', '_')
             stemname = f"{species_string}.scaffolds.stats.txt"
             statsfile = os.path.join(args.genomedir,stemname)
+            # remove strain for the edge case of A. niger 
             if not os.path.exists(statsfile):
-                species_string = sp['SPECIESIN']
-                if len(sp['STRAIN']):
-                    species_string += "_" + sp['STRAIN']
-                species_string = species_string.replace(' ', '_')
-                
-                stemname = f"{species_string}.scaffolds.stats.txt"
+                # try the species name without strain
+                species_string = sp['SPECIES'].replace(' ', '_')                
+                stemname = f"{species_string}.scaffolds.stats.txt"                
                 statsfile = os.path.join(args.genomedir,stemname)
+
                 if not os.path.exists(statsfile):
-                    print(f"Missing {statsfile}")
-                    continue
+                    species_string = sp['SPECIESIN']
+                    if len(sp['STRAIN']):
+                        species_string += "_" + sp['STRAIN']
+                    species_string = species_string.replace(' ', '_')
+                                    
+                    stemname = f"{species_string}.scaffolds.stats.txt"
+                    statsfile = os.path.join(args.genomedir,stemname)
+                    if not os.path.exists(statsfile):
+                        species_string = sp['SPECIESIN'].replace(' ', '_')
+                        stemname = f"{species_string}.scaffolds.stats.txt"
+                        statsfile = os.path.join(args.genomedir,stemname)
+
+                        if not os.path.exists(statsfile):
+                            print(f"Cannot find SPECIESIN {statsfile}")
+                            print(f"{sp['SPECIES']} {sp['STRAIN']} {sp['SPECIESIN']}")
+                            continue
             if args.debug:
                 print(stemname)
-            row= [ sp['LOCUSTAG'], sp['SPECIES'], species_string ]
             
             if not os.path.exists(statsfile):
                 if args.debug:
-                    print("Missing",statsfile)
+                    print("Missing this statsfile: ",statsfile)
                 continue
+            row= [ sp['LOCUSTAG'], sp['SPECIES'], species_string ]
             statistics = {}
             
             with open(statsfile,"r") as statsfh:
+                n = 0
                 for line in statsfh:
                     line = line.strip()
                     if line.startswith("#"):
@@ -82,6 +96,8 @@ def main():
                         if asmfile != species_string:
                             print(f"reading {statsfile} for {species_string} but found {asmfile} in file")
                         continue
+                    if not len(line):
+                        print(f'no data in {line} n={n}')
                     line = re.sub(r'^\s+','',line)          # remove leading whitespace
                     line = re.sub(r'\s+$','',line)          # remove trailing whitespace                    
                     (name,value) = line.split("=")          # split on the first '='
@@ -89,6 +105,7 @@ def main():
                     value = re.sub('^\s+','',value)           # remove trailing whitespace
                     name = name.replace(' ','_')
                     statistics[name] = value
+                    n += 1
 
             for key in statheader:
                 if key in statistics:
