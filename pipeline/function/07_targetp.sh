@@ -1,6 +1,6 @@
 #!/usr/bin/bash -l
-#SBATCH -p short -c 50 --mem 48gb -N 1 -n 1 --out logs/tmhmm.%a.log
-module load tmhmm
+#SBATCH -p short -c 10 --mem 48gb -N 1 -n 1 --out logs/targetp.%a.log
+module load targetp
 
 CPU=1
 if [ ! -z $SLURM_CPUS_ON_NODE ]; then
@@ -15,9 +15,9 @@ if [ -z $N ]; then
         exit
     fi
 fi
-FILEBATCH=50 # how many files to process at a time
+FILEBATCH=10 # how many files to process at a time
 INDIR=$(realpath input)
-OUTDIR=results/function/tmhmm/
+OUTDIR=results/function/targetP/
 mkdir -p $OUTDIR
 OUTDIR=$(realpath $OUTDIR)
 sampset=sampleset.txt
@@ -36,20 +36,16 @@ elif [ $END -gt $MAX ]; then
 fi
 echo "running $START - $END"
 
-runtmhmm() {
+runtargetp() {
 	INFILE=$1
 	NAME=$(basename $INFILE .proteins.fa)
-	echo "$NAME"
-	if [ ! -f $OUTDIR/${NAME}.tmhmm_results.tsv.gz ]; then
-		time tmhmm --noplot < $INDIR/$INFILE > $OUTDIR/${NAME}.tmhmm_results.tsv
-		pigz  $OUTDIR/${NAME}.tmhmm_results.tsv
+	echo "$NAME, $INDIR/$INFILE $OUTDIR/${NAME}"
+	if [ ! -f $OUTDIR/${NAME} ]; then
+		time targetp -batch 100 -tmp $SCRATCH -format short -fasta $INDIR/$INFILE -org non-pl -prefix $OUTDIR/${NAME}
+		#pigz  $OUTDIR/${NAME}.tmhmm_results.tsv
 	fi
-	if [ ! -f $OUTDIR/${NAME}.tmhmm_short.tsv.gz ]; then
-		time tmhmm --short --noplot < $INDIR/$INFILE > $OUTDIR/${NAME}.tmhmm_short.tsv
-		pigz $OUTDIR/${NAME}.tmhmm_short.tsv
-	fi
+
 }
-export -f runtmhmm 
+export -f runtargetp
 export INDIR OUTDIR
-pushd $SCRATCH
-parallel -j $CPU runtmhmm {} ::: $(sed -n ${START},${END}p $sampset)
+parallel -j $CPU runtargetp {} ::: $(sed -n ${START},${END}p $sampset)

@@ -2,6 +2,9 @@
 #SBATCH -c 64 --mem 96gb --out logs/function_convert_pfam_bigquery.log
 #SBATCH --job-name=convert_pfam
 
+
+# convert the Toronto Pfam results into SQL table loadable csv
+
 CPU=1
 if [ ! -z $SLURM_CPUS_ON_NODE ]; then
     CPU=$SLURM_CPUS_ON_NODE
