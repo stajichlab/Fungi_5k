@@ -35,7 +35,7 @@ def main():
     with open(args.samples, 'r') as fh:
         sampleinfo = csv.DictReader(fh, delimiter=",")
         for row in sampleinfo:
-            samples[row['LOCUSTAG']] = row['SPECIES']
+            samples[row['LOCUSTAG']] = row['SPECIES'].replace(' ', '_')
             if len(row['STRAIN']):
                 samples[row['LOCUSTAG']] += f"_{row['STRAIN']}"
             species2locus[ samples[row['LOCUSTAG']] ] = row['LOCUSTAG']
@@ -72,19 +72,19 @@ def main():
                 row = [ f'{args.prefix}{clusterID:0>8}' ]
                 countrow = [ f'{args.prefix}{clusterID:0>8}' ]
                 for item in last_cluster:
-                    species = samples[item.split('_')[0]]
-                    if species not in species_grouping:
-                        species_grouping[species] = []
-                    species_grouping[species].append(item)                
+                    locustag = item.split('_')[0]                    
+                    if locustag not in species_grouping:
+                        species_grouping[locustag] = []
+                    species_grouping[locustag].append(item)                
                 total = 0
-                for species in species_by_locus:
-                    if species not in species_grouping:
+                for locustag in species_by_locus:
+                    if locustag not in species_grouping:
                         row.append("")
                         countrow.append("0")
                     else:
-                        row.append(", ".join(species_grouping[species]))
-                        total += len(species_grouping[species])
-                        countrow.append(f'{len(species_grouping[species])}')
+                        row.append(", ".join(species_grouping[locustag]))
+                        total += len(species_grouping[locustag])
+                        countrow.append(f'{len(species_grouping[locustag])}')
                 countrow.append(str(total))
                 out.write("\t".join(row) + "\n")
                 out_og_table.write("\t".join(countrow) + "\n")
