@@ -98,7 +98,8 @@ codingdensity_large_p
 
 ggsave(file.path(statsplotdir,"genedensity_xyplot_more100k.pdf"),codingdensity_large_p,width=15,height=10)
 
-highdensity <- cdsdensitystat_res %>% filter(coding_density > 0.9) %>% select(c(chrom_name,coding_density,chrom_length,gene_count,SPECIES))
+highdensity <- cdsdensitystat_res %>% filter(coding_density >= 0.85) %>% 
+  select(c(chrom_name,coding_density,chrom_length,gene_count,PHYLUM,SPECIES)) %>% arrange(coding_density)
 write_csv(highdensity,file.path(statsplotdir,"highdensity_chroms.csv"))
 # closeup shop
 dbDisconnect(con, shutdown = TRUE)
