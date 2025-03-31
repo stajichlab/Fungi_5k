@@ -56,7 +56,7 @@ def main():
             if line.startswith('#'): continue   # speedup if we assume no comment lines?
             cluster = line.strip().split()
             if len(cluster) != 2: continue
-            if args.debug and i % 1000000 == 0:
+            if args.debug and i > 0 and i % 1000000 == 0:
                     t6 = time.time()
                     print(f"Processing line {i} took {t6-t5} seconds; ClusterID is {clusterID}", file=sys.stderr)
                     t5 = t6
@@ -68,6 +68,7 @@ def main():
                     continue
             (gene1,gene2) = cluster
             if gene1 != last_seq and last_seq != "":
+                # smart move is to make this a function?
                 species_grouping = {}
                 row = [ f'{args.prefix}{clusterID:0>8}' ]
                 countrow = [ f'{args.prefix}{clusterID:0>8}' ]
@@ -95,21 +96,27 @@ def main():
             last_seq = gene1
 
         # fence post
+        # would be nice to have a function for this for above
         species_grouping = {}
         row = [ f'{args.prefix}{clusterID:0>8}' ]
         countrow = [ f'{args.prefix}{clusterID:0>8}' ]
         for item in last_cluster:
-            species = gene2species[item]
-            if species not in species_grouping:
-                species_grouping[species] = {}
-            species_grouping[species].append(item)                
-            for species in species_by_locus:
-                if species not in species_grouping:
-                    row.append("")
-                    countrow.append(0)
-                else:
-                    row.append(", ".join(species_grouping[species]))
-                    countrow.append(len(species_grouping[species]))
+            locustag = item.split('_')[0]                    
+            if locustag not in species_grouping:
+                species_grouping[locustag] = []
+            species_grouping[locustag].append(item)
+        total = 0
+        for locustag in species_by_locus:
+            if locustag not in species_grouping:
+                row.append("")
+                countrow.append("0")
+            else:
+                row.append(", ".join(species_grouping[locustag]))
+                total += len(species_grouping[locustag])
+                countrow.append(f'{len(species_grouping[locustag])}')
+        countrow.append(str(total))
+        out.write("\t".join(row) + "\n")
+        out_og_table.write("\t".join(countrow) + "\n")
         
         if args.debug:
             t2 = time.time()
