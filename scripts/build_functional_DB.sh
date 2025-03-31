@@ -12,7 +12,7 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_species_speciesin ON species(SPECIESIN
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_species_species ON species(SPECIES,GENUS)" $DBDIR/$DBNAME.duckdb
 # build asm stats table
 duckdb -c "CREATE TABLE IF NOT EXISTS asm_stats AS SELECT * FROM read_csv_auto('bigquery/asm_stats.csv.gz')" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_asmstats_locustag ON asm_stats(LOCUSTAG)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_stats_locustag ON asm_stats(LOCUSTAG)" $DBDIR/$DBNAME.duckdb
 
 # build chrom stats table
 duckdb -c "CREATE TABLE IF NOT EXISTS chrom_info AS SELECT * FROM read_csv_auto('bigquery/chrom_info.csv.gz')" $DBDIR/$DBNAME.duckdb
