@@ -1,5 +1,6 @@
 vscode*
-*.fa.*.n??
+*.fa*.n??
+
 *~
 .Rproj.user
 .Rhistory
