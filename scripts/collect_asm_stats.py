@@ -33,7 +33,7 @@ def main():
         # header is 
         statheader = [
             'CONTIG_COUNT', 'TOTAL_LENGTH', 'MIN', 'MAX', 'MEDIAN', 'MEAN',
-            'L50', 'N50', 'L90', 'N90', 'GC%', 'T2T_SCAFFOLDS', 
+            'L50', 'N50', 'L90', 'N90', 'GC_PERCENT', 'T2T_SCAFFOLDS', 
             'TELOMERE_FWD', 'TELOMERE_REV'
         ]
         header = [ 'LOCUSTAG', 'SPECIES', 'FILENAME']
@@ -104,6 +104,8 @@ def main():
                     name = re.sub('\s+$','',name)           # remove trailing whitespace
                     value = re.sub('^\s+','',value)           # remove trailing whitespace
                     name = name.replace(' ','_')
+                    if name == 'GC%':
+                        name = "GC_PERCENT"
                     statistics[name] = value
                     n += 1
 
