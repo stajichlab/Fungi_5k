@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+
+import sys
+import argparse
+import pathlib
+import re
+import os
+import time
+import gzip
+import csv
+
+def main():
+    parser = argparse.ArgumentParser(
+                    prog='mmseqs_intron2introngroups.py',
+                    description='Convert MMseq2 clusters to pairwise orthologs',
+                    epilog='Example: mmseqs_intron2introngroups.py [-i input_clusters.tsv] -o intron_groups_mmseqs.tsv.gz -ot intron_groups_mmseqs_count.tsv')
+    parser.add_argument('-i','--input', help='Input MMSeqs clustered introns file', nargs='?', 
+                        type=argparse.FileType('r'),
+                        default=sys.stdin)
+    parser.add_argument('-o', '--output', help='Output gzip ortholog table like orthofinder', 
+                        required=False, default='results/intron_groups_mmseqs.tsv.gz')
+    parser.add_argument('-oc', '--output_csv_table', help='Output gzip ortholog table for SQL load', 
+                        required=False, default='bigquery/mmseqs_intron_clusters.csv.gz')
+
+    parser.add_argument('-ot', '--output_table', help='Output gzip file for bigquery load', 
+                        required=False, default='results/intron_groups_mmseqs_count.tsv')
+    parser.add_argument('--prefix', help='Cluster Name prefix', default="INTRONCLUST")
+    parser.add_argument('-v','--debug', help='Debugging output', action='store_true')
+    parser.add_argument('-f','--force', help='Force overwriting', action='store_true')
+    parser.add_argument('-s','--samples', type = str, default = 'samples.csv', help = 'species prefix')
+
+    args = parser.parse_args()
+
+    samples = {}
+    species2locus = {}
+    species_by_locus = []
+    header = []
+    with open(args.samples, 'r') as fh:
+        sampleinfo = csv.DictReader(fh, delimiter=",")
+        for row in sampleinfo:
+            samples[row['LOCUSTAG']] = row['SPECIES'].replace(' ', '_')
+            if len(row['STRAIN']):
+                samples[row['LOCUSTAG']] += f"_{row['STRAIN']}"
+            species2locus[ samples[row['LOCUSTAG']] ] = row['LOCUSTAG']
+            species_by_locus.append(row['LOCUSTAG'])
+            header.append(samples[row['LOCUSTAG']])
+        
+    # Read in the cluster file
+    clusterID = 0
+    last_seq = ""
+    last_cluster = set()
+    i = 0
+    t5 = time.time()
+    t4 = t5
+    with gzip.open(args.output, 'wt') as out, open(args.output_table, 'w') as out_og_table, gzip.open(args.output_csv_table, 'wt') as out_csv_table:
+        out.write("\t".join(['IntronOrthogroup']+ header) + "\n")
+        out_og_table.write("\t".join(['IntronOrthogroup']+ header + ['Total']) + "\n")
+        out_csv_table.write("\t".join(['IntronOrthogroup','intron_id']) + "\n")
+        for line in args.input:
+            if line.startswith('#'): continue   # speedup if we assume no comment lines?
+            cluster = line.strip().split()
+            if len(cluster) != 2: continue
+            if args.debug and i > 0 and i % 1000000 == 0:
+                    t6 = time.time()
+                    print(f"Processing line {i} took {t6-t5} seconds; ClusterID is {clusterID}", file=sys.stderr)
+                    t5 = t6
+            i+=1
+            for gene in cluster:
+                LOCUSTAG = gene.split("_")[0]
+                if LOCUSTAG not in samples:
+                    print(f"Gene {gene} Prefix {LOCUSTAG} not found in {args.samples} file", file=sys.stderr)
+                    continue
+            (gene1,gene2) = cluster
+            if gene1 != last_seq and last_seq != "":
+                # smart move is to make this a function?
+                species_grouping = {}
+                row = [ f'{args.prefix}{clusterID:0>8}' ]
+                countrow = [ f'{args.prefix}{clusterID:0>8}' ]
+                for item in last_cluster:
+                    locustag = item.split('_')[0]                    
+                    if locustag not in species_grouping:
+                        species_grouping[locustag] = []
+                    species_grouping[locustag].append(item)                
+                total = 0
+                for locustag in species_by_locus:
+                    if locustag not in species_grouping:
+                        row.append("")
+                        countrow.append("0")
+                    else:
+                        row.append(", ".join(species_grouping[locustag]))
+                        total += len(species_grouping[locustag])
+                        countrow.append(f'{len(species_grouping[locustag])}')
+                countrow.append(str(total))
+                out.write("\t".join(row) + "\n")
+                out_og_table.write("\t".join(countrow) + "\n")
+                print(f"{args.prefix}{clusterID:0>8},{gene2}", file=out)
+                clusterID += 1
+                last_cluster = set()
+            last_cluster.add(gene1)
+            last_cluster.add(gene2)
+            last_seq = gene1
+
+        # fence post
+        # would be nice to have a function for this for above
+        species_grouping = {}
+        row = [ f'{args.prefix}{clusterID:0>8}' ]
+        countrow = [ f'{args.prefix}{clusterID:0>8}' ]
+        for item in last_cluster:
+            locustag = item.split('_')[0]                    
+            if locustag not in species_grouping:
+                species_grouping[locustag] = []
+            species_grouping[locustag].append(item)
+        total = 0
+        for locustag in species_by_locus:
+            if locustag not in species_grouping:
+                row.append("")
+                countrow.append("0")
+            else:
+                row.append(", ".join(species_grouping[locustag]))
+                total += len(species_grouping[locustag])
+                countrow.append(f'{len(species_grouping[locustag])}')
+        countrow.append(str(total))
+        out.write("\t".join(row) + "\n")
+        out_og_table.write("\t".join(countrow) + "\n")
+        
+        if args.debug:
+            t2 = time.time()
+            total = t2-t4
+            print(f"Processing clusters took {total} seconds",file=sys.stderr)
+
+if __name__ == "__main__":
+    main()
