@@ -9,12 +9,19 @@ if [ ! -z $SLURM_CPUS_ON_NODE ]; then
 fi
 
 EXT=idp.csv
+EXTSUM=idp_summary.csv
 if [ ! -s bigquery/$EXT.gz ]; then
     INDIR=results/function/aiupred
     
-    ls -U $INDIR | grep \.aiupred\.txt\.gz | parallel -J $CPU ./scripts/gather_AIUPred.py $INDIR/{} -o $SCRATCH/{.}.$EXT
+    ls -U $INDIR | grep \.aiupred\.txt\.gz | time parallel -J $CPU ./scripts/gather_AIUPred.py $INDIR/{} --outfile $SCRATCH/{.}.$EXT --outfilesum $SCRATCH/{.}.$EXTSUM
     FIRST=$(ls -U $SCRATCH/*.$EXT | head -n 1)
     head -n 1 $FIRST > bigquery/$EXT
     ls -U $SCRATCH | grep -E "$EXT" | xargs -I {} sh -c "tail -n +2 $SCRATCH/{} >> bigquery/$EXT"
     pigz -f bigquery/$EXT
+
+    FIRST=$(ls -U $SCRATCH/*.$EXTSUM | head -n 1)
+    head -n 1 $FIRST > bigquery/$EXTSUM
+    ls -U $SCRATCH | grep -E "$EXTSUM" | xargs -I {} sh -c "tail -n +2 $SCRATCH/{} >> bigquery/$EXTSUM"
+    pigz -f bigquery/$EXTSUM
+
 fi
