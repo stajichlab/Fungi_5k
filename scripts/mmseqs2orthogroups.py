@@ -11,9 +11,9 @@ import csv
 
 def main():
     parser = argparse.ArgumentParser(
-                    prog='mmseqs2pairwise.py',
+                    prog='mmseqs2orthogroups.py',
                     description='Convert MMseq2 clusters to pairwise orthologs',
-                    epilog='Example: mmseqs2pairwise.py [-i input_clusters.tsv] -d outdir')
+                    epilog='Example: mmseqs2orthogroups.py [-i input_clusters.tsv] [-o results/orthogroups_mmseqs.tsv.gz] [-ot results/orthogroups_mmseqs_genecount.tsv]')
     parser.add_argument('-i','--input', help='Input MMSeqs cluster file', nargs='?', 
                         type=argparse.FileType('r'),
                         default=sys.stdin)
@@ -23,7 +23,7 @@ def main():
                         required=False, default='results/orthogroups_mmseqs_genecount.tsv')
     parser.add_argument('--prefix', help='Cluster Name prefix', default="MMCLUST")
     parser.add_argument('-v','--debug', help='Debugging output', action='store_true')
-    parser.add_argument('--force', help='Force overwriting', action='store_true')
+    parser.add_argument('-f', '--force', help='Force overwriting', action='store_true')
     parser.add_argument('-s','--samples', type = str, default = 'samples.csv', help = 'species prefix')
 
     args = parser.parse_args()

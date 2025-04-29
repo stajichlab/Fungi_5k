@@ -15,7 +15,7 @@ def load_samples(fh):
         samples.append(row)
     return samples
 
-def main():    
+def main():
     parser = argparse.ArgumentParser(description="Collect precomputed genome asm stats into a table",
                                     epilog='Example: collect_asm_stats.py')
     parser.add_argument("-d","--genomedir", default="genomes", help="Directory with genomes with pre-computed .stats.txt file")

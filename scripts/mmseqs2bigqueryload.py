@@ -9,7 +9,7 @@ import time
 import gzip
 def main():
     parser = argparse.ArgumentParser(
-                    prog='mmseqs2pairwise.py',
+                    prog='mmseqs2bigqueryload.py',
                     description='Convert MMseq2 clusters to table for orthology',
                     epilog='Example: mmseqs2bigqueryload.py [-i input_clusters.tsv] [-o bigquery/mmseqs_clusters.csv]')
     parser.add_argument('-i','--input', help='Input MMSeqs cluster file', nargs='?', 

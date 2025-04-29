@@ -102,6 +102,16 @@ highdensity <- cdsdensitystat_res %>% filter(coding_density >= 0.85) %>%
   select(c(chrom_name,coding_density,chrom_length,gene_count,PHYLUM,SPECIES)) %>% arrange(coding_density)
 write_csv(highdensity,file.path(statsplotdir,"highdensity_chroms.csv"))
 # closeup shop
+
+CBM18_sql = "SELECT sp.SPECIES, sp.LOCUSTAG, pfam_id, COUNT(*) as domain_count
+FROM species as sp, pfam
+WHERE pfam.species_prefix = sp.LOCUSTAG AND
+pfam.pfam_id = 'Chitin_bind_1'
+GROUP BY sp.SPECIES, sp.LOCUSTAG, pfam_id ORDER by domain_count DESC"
+
+CBM18_res <- dbGetQuery(con, CBM18_sql)
+head(CBM18_res)
+
 dbDisconnect(con, shutdown = TRUE)
 
 

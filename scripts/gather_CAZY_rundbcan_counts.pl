@@ -22,18 +22,17 @@ my $speciesorder;
 my $verbose;
 
 GetOptions('help|?'               => \$help, 
-	   'man'                  => \$man,
-	   'i|input:s'            => \$indir,
-	   'o|out:s'              => \$out,
-	   'op|outpref:s'         => \$outpref,
-	   'v|verbose!'           => \$verbose,
-	   'd|domain|domainout:s' => \$domaindir,
-	   'ext|extension:s'      => \$ext,
-	   'fname:s'              => \$datfile,
-	   'db|database|seqs:s'   => \$seqdb,
-	   'species:s'            => \$speciesorder,
-	   'sfetch:s'             => \$sfetch,
-	   
+		'man'                  => \$man,
+		'i|input:s'            => \$indir,
+		'o|out:s'              => \$out,
+		'op|outpref:s'         => \$outpref,
+		'v|verbose!'           => \$verbose,
+		'd|domain|domainout:s' => \$domaindir,
+		'ext|extension:s'      => \$ext,
+		'fname:s'              => \$datfile,
+		'db|database|seqs:s'   => \$seqdb,
+		'species:s'            => \$speciesorder,
+		'sfetch:s'             => \$sfetch,
     ) or pod2usage(2);
 pod2usage(1) if $help;
 
