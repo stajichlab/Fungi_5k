@@ -1,5 +1,5 @@
 #!/usr/bin/bash -l
-#SBATCH -p epyc -N 1 -n 1 -c 2 --mem 2gb --out logs/pfam.%a.log
+#SBATCH -p short -N 1 -n 1 -c 48 --mem 48gb --out logs/pfam.%a.log -a 1-244
 
 CPU=2
 if [ ! -z $SLURM_CPUS_ON_NODE ]; then
@@ -19,15 +19,43 @@ module load hmmer/3.4
 module load db-pfam
 module load workspace/scratch
 
-INFILE=db/LsFMGC_AA_95_rep.fasta
-TEMP=db/$(basename $INFILE .fasta)__split
-PREFIX=LsFMGC
-OUTDIR=results/function/pfam
+FILEBATCH=24
+INDIR=$(realpath input)
+OUTDIR=results/function/pfam_rerun
 mkdir -p $OUTDIR
+OUTDIR=$(realpath $OUTDIR)
+sampset=sampleset.txt
+if [ ! -s $sampset ]; then
+	ls -U $INDIR | grep -v -P '\.fai$' | sort > $sampset
+fi
+sampset=$(realpath sampleset.txt)
+MAX=$(wc -l $sampset | awk '{print $1}')
+START=$(perl -e "print 1 + (($N - 1) * $FILEBATCH)")
+END=$(perl -e "print ($N * $FILEBATCH) - 1")
+if [ $START -gt $MAX ]; then
+	echo "$START too big for $MAX"
+	exit
+elif [ $END -gt $MAX ]; then
+	END=$MAX
+fi
+echo "running $START - $END"
 
-IN=$TEMP/${PREFIX}.$N
+runcmd() {
+    INFILE=$1
+    INCPU=2
+    NAME=$(basename $INFILE .proteins.fa)
+    echo "$NAME, $INDIR/$INFILE $OUTDIR/${NAME}"    
+    if [ ! -s $OUTDIR/${NAME}.pfam ]; then
+        time hmmscan --cut_ga --cpu $INCPU \
+            --domtblout $OUTDIR/${NAME}.pfam \
+            --tblout $OUTDIR/${NAME}.tblout \
+            $SCRATCH/Pfam-A.hmm $INDIR/$INFILE | gzip -c > $OUTDIR/${NAME}.log.gz
+    fi
+}
+
+export -f runcmd
+export INDIR OUTDIR CPU PFAM_DB SCRATCH
+RUNCPU=$(expr $CPU / 2)
+
 rsync -a $PFAM_DB/Pfam-A.hmm* $SCRATCH/
-time hmmscan --cut_ga --cpu $CPU \
-    --domtblout $OUTDIR/${PREFIX}.$N.domtblout \
-    --tblout $OUTDIR/${PREFIX}.$N.tblout \
-    $SCRATCH/Pfam-A.hmm $IN | gzip -c > $OUTDIR/${PREFIX}.$N.log.gz
+parallel -j $RUNCPU runcmd {} ::: $(sed -n ${START},${END}p $sampset)
