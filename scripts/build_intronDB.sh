@@ -1,11 +1,10 @@
 #!/usr/bin/bash -l
-#SBATCH -p short -C ryzen --mem 128gb -c 96 -N 1 -n 1 --out logs/load_intronDB.log
+#SBATCH -p short -C ryzen --mem 96gb -c 24 -N 1 -n 1 --out logs/load_intronDB.log
 module load duckdb
 DBDIR=intronDB
 DBNAME=intron_db
 mkdir -p $DBDIR
 
-# build species table
 duckdb -c "CREATE TABLE IF NOT EXISTS species AS SELECT * FROM read_csv_auto('samples.csv')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_species_locustag ON species(LOCUSTAG)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_species_asm ON species(ASMID)" $DBDIR/$DBNAME.duckdb
@@ -46,13 +45,11 @@ duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_gene_info_gene_id ON gene_info(
 
 
 # build intron tables
+duckdb -c "CREATE TABLE IF NOT EXISTS intron_matches AS 
+SELECT *, substring(query,1,8) as qlocus, substring(subject,1,8) as slocus  
+FROM read_csv('fungi_introns/blastn_results/*.gz',sep='\t',header=false,compression='gzip', 
+names=['query', 'qlength', 'subject', 'slength', 'identity', 'alnlen', 'mismatches', 'gapopen', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore'])
+WHERE identity >= 80 AND query != subject"  $DBDIR/$DBNAME.duckdb
 
-#duckdb -c "CREATE TABLE IF NOT EXISTS intron_matches AS 
-#SELECT *, substring(query,1,8) as qlocus, substring(subject,1,8) as slocus  
-#FROM read_csv('fungi_introns/blastn_results/*.gz',sep='\t',header=false,compression='gzip', 
-#names=['query', 'qlength', 'subject', 'slength', 'identity', 'alnlen', 'mismatches', 'gapopen', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore'])
-#WHERE identity >= 90 AND query != subject
-#"  $DBDIR/$DBNAME.duckdb
-
-#duckdb -c "CREATE INDEX IF NOT EXISTS idx_intron_matches_qlocus ON intron_matches(qlocus,query)" $DBDIR/$DBNAME.duckdb
-#duckdb -c "CREATE INDEX IF NOT EXISTS idx_intron_matches_slocus ON intron_matches(slocus,subject)"  $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_intron_matches_qlocus ON intron_matches(qlocus,query)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_intron_matches_slocus ON intron_matches(slocus,subject)"  $DBDIR/$DBNAME.duckdb

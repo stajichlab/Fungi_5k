@@ -1,5 +1,5 @@
 #!/usr/bin/bash -l
-#SBATCH -p short -C ryzen --mem 128gb -c 96 -N 1 -n 1 --out logs/load_functionDB.log
+#SBATCH -p short -C ryzen --mem 64gb -c 64 -N 1 -n 1 --out logs/load_functionDB.log
 module load duckdb
 DBDIR=functionalDB
 DBNAME=function
@@ -25,6 +25,12 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_proteins_locustag ON gene_protein
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_proteins_gene_id ON gene_proteins(gene_id)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_gene_proteins_protein_id ON gene_proteins(protein_id)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_proteins_tx_id ON gene_proteins(transcript_id)" $DBDIR/$DBNAME.duckdb
+
+
+# build exons
+duckdb -c "CREATE TABLE IF NOT EXISTS gene_exons AS SELECT *, substring(transcript_id,1,8) as locustag FROM read_csv_auto('bigquery/gene_exons.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_exon_locustag ON gene_exons(locustag)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_exons_transcript_id ON gene_exons(transcript_id)" $DBDIR/$DBNAME.duckdb
 
 # Add tRNA
 duckdb -c "CREATE TABLE IF NOT EXISTS gene_trna AS SELECT *, substring(gene_id,1,8) as locustag FROM read_csv_auto('bigquery/gene_trnas.csv.gz')" $DBDIR/$DBNAME.duckdb
@@ -94,11 +100,19 @@ duckdb -c "CREATE TABLE IF NOT EXISTS tmhmm AS SELECT * FROM read_csv('bigquery/
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_tmhmm_locus ON tmhmm(species_prefix)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_tmhmm_protein_id ON tmhmm(protein_id)" $DBDIR/$DBNAME.duckdb
 
-
 # add pscan
 duckdb -c "CREATE TABLE IF NOT EXISTS prosite AS SELECT * FROM read_csv('bigquery/ps_scan.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_prosite_locus ON prosite(species_prefix)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_prosite_protein_ud ON prosite(protein_id)" $DBDIR/$DBNAME.duckdb
+
+# add IDP/IDR
+duckdb -c "CREATE TABLE IF NOT EXISTS idp_summary AS SELECT * FROM read_csv('bigquery/idp_summary.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_idpsum_prefix ON idp_summary(species_prefix)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_idpsum_protein ON idp_summary(protein_id)" $DBDIR/$DBNAME.duckdb
+
+duckdb -c "CREATE TABLE IF NOT EXISTS idp AS SELECT * FROM read_csv('bigquery/idp.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_idp_prefix ON idp(species_prefix)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_idp_protein ON idp(protein_id,IDP_start)" $DBDIR/$DBNAME.duckdb
 
 # add orthogroups
 duckdb -c "CREATE TABLE IF NOT EXISTS mmseqs_orthogroup_clusters AS SELECT * FROM read_csv('bigquery/mmseqs_orthogroup_clusters.csv.gz')" $DBDIR/$DBNAME.duckdb
