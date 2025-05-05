@@ -75,7 +75,13 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_cazy_HMM ON cazy(HMM_id)" $DBDIR/$DBNA
 duckdb -c "CREATE TABLE IF NOT EXISTS pfam AS SELECT *, substring(protein_id,1,8) as species_prefix FROM read_csv_auto('bigquery/pfam.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfam_locustag ON pfam(species_prefix)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfam_protein_id ON pfam(protein_id)" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfam_protein_id ON pfam(pfam_id)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfam_pfam_id ON pfam(pfam_id)" $DBDIR/$DBNAME.duckdb
+
+# build Pfam UoT domains table
+duckdb -c "CREATE TABLE IF NOT EXISTS pfam_UoT AS SELECT *, substring(protein_id,1,8) as species_prefix FROM read_csv_auto('bigquery/pfam_UoT.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfamUoT_locustag ON pfam(species_prefix)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfamUoT_protein_id ON pfam(protein_id)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfamUoT_pfam_id ON pfam(pfam_id)" $DBDIR/$DBNAME.duckdb
 
 
 # Add funguild
