@@ -18,22 +18,22 @@ do_query() {
     OUTDIR=$SCRATCH/start_${START}
     echo "st=${START} end=${END}"
     mkdir -p $OUTDIR
-    ./scripts/pfamtsv_to_long.py --outfile $OUTDIR/pfam.csv $(ls $GFOLDER | sed -n "${START},${END}p" | xargs -i echo "${GFOLDER}/"{})
+    ./scripts/pfamtsv_to_long.py --outfile $OUTDIR/pfam_UoT.csv $(ls $GFOLDER | sed -n "${START},${END}p" | xargs -i echo "${GFOLDER}/"{})
 }
 export -f do_query
-EXT=pfam.csv
+EXT=pfam_UoT.csv
 OUTDIR=bigquery
 BINSIZE=100
 if [ ! -s $OUTDIR/$EXT.gz ]; then
-    INDIR=results/function/pfam
+    INDIR=results/function/pfam_TOR
     COUNT=$(ls $INDIR | wc -l)
     echo "starting -->"
     date
     time parallel -j $CPU do_query ::: $(seq 1 $BINSIZE $COUNT) ::: $BINSIZE ::: $INDIR
-    for file in $SCRATCH/start_1/pfam.csv; do
+    for file in $SCRATCH/start_1/pfam_UoT.csv; do
         head -n 1 $file > $OUTDIR/$(basename $file)
     done
-    for file in $SCRATCH/start_*/pfam.csv;
+    for file in $SCRATCH/start_*/pfam_UoT.csv;
     do
         echo "processing ${file}"
         tail -n +2 $file >> ${OUTDIR}/$(basename $file)

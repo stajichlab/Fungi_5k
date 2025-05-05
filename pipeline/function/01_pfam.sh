@@ -1,5 +1,5 @@
 #!/usr/bin/bash -l
-#SBATCH -p short -N 1 -n 1 -c 48 --mem 48gb --out logs/pfam.%a.log -a 1-244
+#SBATCH -p short -N 1 -n 1 -c 16 --mem 48gb --out logs/pfam.%a.log -a 1-244
 
 CPU=2
 if [ ! -z $SLURM_CPUS_ON_NODE ]; then
@@ -19,7 +19,7 @@ module load hmmer/3.4
 module load db-pfam
 module load workspace/scratch
 
-FILEBATCH=24
+FILEBATCH=16
 INDIR=$(realpath input)
 OUTDIR=results/function/pfam_rerun
 mkdir -p $OUTDIR
@@ -55,7 +55,7 @@ runcmd() {
 
 export -f runcmd
 export INDIR OUTDIR CPU PFAM_DB SCRATCH
-RUNCPU=$(expr $CPU / 2)
+RUNCPU=$(expr $CPU / 4)
 
 rsync -a $PFAM_DB/Pfam-A.hmm* $SCRATCH/
 parallel -j $RUNCPU runcmd {} ::: $(sed -n ${START},${END}p $sampset)
