@@ -130,8 +130,6 @@ p <- ggplot(category_exoncountconserved_sumstatfilter,
 p
 ggsave(file.path(plotdir,"transcript_exoncount_OnlyConserved_histogram.pdf"),p,width=10,height=8)
 
-
-
 dbDisconnect(con, shutdown = TRUE)
 
 
