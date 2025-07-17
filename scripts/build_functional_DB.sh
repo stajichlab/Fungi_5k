@@ -78,10 +78,11 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfam_protein_id ON pfam(protein_id)" $
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfam_pfam_id ON pfam(pfam_id)" $DBDIR/$DBNAME.duckdb
 
 # build Pfam UoT domains table
-duckdb -c "CREATE TABLE IF NOT EXISTS pfam_UoT AS SELECT *, substring(protein_id,1,8) as species_prefix FROM read_csv_auto('bigquery/pfam_UoT.csv.gz')" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfamUoT_locustag ON pfam(species_prefix)" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfamUoT_protein_id ON pfam(protein_id)" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfamUoT_pfam_id ON pfam(pfam_id)" $DBDIR/$DBNAME.duckdb
+# no longer using since saw some problems with the UoT data
+#duckdb -c "CREATE TABLE IF NOT EXISTS pfam_UoT AS SELECT *, substring(protein_id,1,8) as species_prefix FROM read_csv_auto('bigquery/pfam_UoT.csv.gz')" $DBDIR/$DBNAME.duckdb
+#duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfamUoT_locustag ON pfam(species_prefix)" $DBDIR/$DBNAME.duckdb
+#duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfamUoT_protein_id ON pfam(protein_id)" $DBDIR/$DBNAME.duckdb
+#duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfamUoT_pfam_id ON pfam(pfam_id)" $DBDIR/$DBNAME.duckdb
 
 
 # Add funguild
@@ -110,6 +111,11 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_tmhmm_protein_id ON tmhmm(protein_id)"
 duckdb -c "CREATE TABLE IF NOT EXISTS prosite AS SELECT * FROM read_csv('bigquery/ps_scan.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_prosite_locus ON prosite(species_prefix)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_prosite_protein_ud ON prosite(protein_id)" $DBDIR/$DBNAME.duckdb
+
+# add targetP
+duckdb -c "CREATE TABLE IF NOT EXISTS targetp AS SELECT * FROM read_csv('bigquery/targetP.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_targetp_species ON targetp(species_prefix)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_targetp_proteinid ON targetp(protein_id)" $DBDIR/$DBNAME.duckdb
 
 # add IDP/IDR
 duckdb -c "CREATE TABLE IF NOT EXISTS idp_summary AS SELECT * FROM read_csv('bigquery/idp_summary.csv.gz')" $DBDIR/$DBNAME.duckdb
