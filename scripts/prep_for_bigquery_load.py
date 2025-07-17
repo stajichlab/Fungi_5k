@@ -3,12 +3,20 @@
 import os
 import csv
 import gzip
+import re
+# This script prepares data for loading into BigQuery.
+# It reads various function prediction results from a specified directory,
+# processes them, and writes the results into CSV files in a specified output directory.
+# The output files are named based on the input directory names and are stored in a directory named 'bigquery'.
+# The script includes functions for processing MEROPS, CAZY, SignalP, TMHMM, WolfPSORT, and TargetP data.
+# The script checks if the output files already exist and skips processing if they do, unless forced to overwrite.
+# The output files are compressed with gzip if they already exist.
 
 outdir = 'bigquery'
 def merops(indir="results/function/merops",force=False):
     # load MEROPS data
     outfile = os.path.join(outdir,os.path.basename(indir) + ".csv")
-    if (os.path.exists(outfile) or os.path.exists(outfile + ".gz") )and not force:
+    if (os.path.exists(outfile) or os.path.exists(outfile + ".gz") ) and not force:
         return 
     with open(outfile, "w", newline='') as of:
         writer = csv.writer(of)
@@ -137,8 +145,63 @@ def wolfpsort(indir="results/function/wolfpsort",force=False,onlybest=True):
                                 break
 
 
-def targetp(indir="results/function/targetp",force=False):
-    print('not running yet')
+# redicts the presence of N-terminal presequences: signal peptide (SP),
+# mitochondrial transit peptide (mTP), chloroplast transit peptide (cTP)
+# or thylakoid luminal transit peptide (lTP). For the sequences predicted to 
+# contain an N-terminal presequence a potential cleavage site is also predicted.
+
+# The type can be
+
+# "SP" for signal peptide,
+# "MT" for mitochondrial transit peptide (mTP),
+# "CH" for chloroplast transit peptide (cTP),
+# "TH" for thylakoidal lumen composite transit peptide (lTP),
+# "Other" for no targeting peptide (in this case, the length is given as 0).
+
+# s the position where the sorting signal is cleaved.
+# This is encoded as a zero vector of length 200 with 1 in the cleavage site position.
+
+def targetp(indir="results/function/targetP",force=False):
+    outfile = os.path.join(outdir,os.path.basename(indir) + ".csv")
+    if (os.path.exists(outfile) or os.path.exists(outfile + ".gz") ) and not force:
+        return
+    CSmatch = re.compile(r'CS pos:\s+(\d+)-(\d+)\.\s+(\S+)\.\s+Pr:\s+(\S+)')
+    with open(outfile, "w", newline='') as of:
+        writer = csv.writer(of)
+        writer.writerow(['species_prefix','protein_id','prediction','probability',
+                        'cleavage_position_start', 'cleavage_position_end',
+                        'cleavage_probability', 'motif'])
+        for file in os.listdir(indir):
+            if file.endswith("_summary.targetp2.gz"):
+                with gzip.open(os.path.join(indir,file), "rt") as infh:                    
+                    for line in infh:
+                        if line.startswith('#'):
+                            continue
+                        (id,prediction,results) = line.strip().split('\t',2)
+                        if prediction == "noTP":
+                            continue
+                        (noTP,SP,mTP,CS) = results.split('\t')
+                        prefix = id.split('_')[0]
+                        probability = None
+                        if prediction == "SP":
+                            probability = SP
+                        elif prediction == "mTP":
+                            probability = mTP
+
+                        m = CSmatch.match(CS)
+                        cleavage_position_start = '0'
+                        cleavage_position_end = '0'
+                        motif = ''
+                        cleavage_probability = '0.0'
+                        if m:
+                            (cleavage_position_start,cleavage_position_end,
+                            motif,cleavage_probability) = m.groups()
+                        
+                        datarow = [prefix,id,prediction, probability,
+                                cleavage_position_start, cleavage_position_end,
+                                cleavage_probability, motif]
+                        
+                        writer.writerow(datarow)
 
 def kegg(indir="results/function/kegg",force=False):
     print('not running yet')
@@ -154,8 +217,7 @@ cazy_overview()
 cazy_hmm()
 signalp()
 #kegg()
-
 tmhmm()
 wolfpsort()
 #busco()
-#targetp()
+targetp()
