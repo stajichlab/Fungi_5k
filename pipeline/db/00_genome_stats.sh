@@ -5,5 +5,6 @@ module load AAFTF
 CPU=64
 pushd genomes
 parallel -j $CPU AAFTF assess -i {} -r {.}.stats.txt ::: $(ls -U *.fa)
+popd
 
 ./scripts/collect_asm_stats.py
