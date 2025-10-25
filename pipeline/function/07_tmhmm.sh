@@ -42,7 +42,7 @@ runtmhmm() {
 	echo "$NAME"
 	if [ ! -f $OUTDIR/${NAME}.tmhmm_results.tsv.gz ]; then
 		time tmhmm --noplot < $INDIR/$INFILE > $OUTDIR/${NAME}.tmhmm_results.tsv
-		pigz  $OUTDIR/${NAME}.tmhmm_results.tsv
+		pigz $OUTDIR/${NAME}.tmhmm_results.tsv
 	fi
 	if [ ! -f $OUTDIR/${NAME}.tmhmm_short.tsv.gz ]; then
 		time tmhmm --short --noplot < $INDIR/$INFILE > $OUTDIR/${NAME}.tmhmm_short.tsv

@@ -21,7 +21,7 @@ module load workspace/scratch
 
 FILEBATCH=16
 INDIR=$(realpath input)
-OUTDIR=results/function/pfam_rerun
+OUTDIR=results/function/pfam_hmmscan
 mkdir -p $OUTDIR
 OUTDIR=$(realpath $OUTDIR)
 sampset=sampleset.txt
@@ -45,11 +45,12 @@ runcmd() {
     INCPU=2
     NAME=$(basename $INFILE .proteins.fa)
     echo "$NAME, $INDIR/$INFILE $OUTDIR/${NAME}"    
-    if [ ! -s $OUTDIR/${NAME}.pfam ]; then
+    if [ ! -s $OUTDIR/${NAME}.pfam.gz ]; then
         time hmmscan --cut_ga --cpu $INCPU \
             --domtblout $OUTDIR/${NAME}.pfam \
             --tblout $OUTDIR/${NAME}.tblout \
             $SCRATCH/Pfam-A.hmm $INDIR/$INFILE | gzip -c > $OUTDIR/${NAME}.log.gz
+            pigz  $OUTDIR/${NAME}.pfam  $OUTDIR/${NAME}.tblout
     fi
 }
 

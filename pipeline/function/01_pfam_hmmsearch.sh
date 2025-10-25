@@ -21,7 +21,7 @@ module load workspace/scratch
 
 FILEBATCH=24
 INDIR=$(realpath input)
-OUTDIR=results/function/pfam_rerun
+OUTDIR=results/function/pfam
 mkdir -p $OUTDIR
 OUTDIR=$(realpath $OUTDIR)
 sampset=sampleset.txt
@@ -45,12 +45,13 @@ runcmd() {
     INCPU=4
     NAME=$(basename $INFILE .proteins.fa)
     echo "$NAME, $INDIR/$INFILE $OUTDIR/${NAME}"    
-    if [ ! -s $OUTDIR/${NAME}.domtblout ]; then
+    if [ ! -s $OUTDIR/${NAME}.domtblout.gz ]; then
         time hmmsearch --cut_ga --cpu $INCPU \
             --domtblout $OUTDIR/${NAME}.domtblout \
             --tblout $OUTDIR/${NAME}.tblout \
             $SCRATCH/Pfam-A.hmm $INDIR/$INFILE > $SCRATCH/${NAME}.log
- 	pigz $SCRATCH/${NAME}.log
+    pigz $OUTDIR/${NAME}.domtblout  $OUTDIR/${NAME}.tblout
+    pigz $SCRATCH/${NAME}.log
 	mv $SCRATCH/${NAME}.log.gz $OUTDIR/${NAME}.log.gz
     fi
 }

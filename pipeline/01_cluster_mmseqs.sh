@@ -6,6 +6,7 @@ module load mmseqs2
 which mmseqs
 module load workspace/scratch
 PREFIX=Fungi5K
+PREFIX=CryoendoAnt
 mkdir -p $SCRATCH/mmseqs
 DB=$SCRATCH/mmseqs/$PREFIX
 #mkdir -p mmseqs

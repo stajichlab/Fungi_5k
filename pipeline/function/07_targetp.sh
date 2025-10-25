@@ -41,9 +41,9 @@ runtargetp() {
 	BATCH=50
 	NAME=$(basename $INFILE .proteins.fa)
 	echo "$NAME, $INDIR/$INFILE $OUTDIR/${NAME}"
-	if [ ! -s $OUTDIR/${NAME}_summary.targetp2 ]; then
+	if [ ! -s $OUTDIR/${NAME}_summary.targetp2.gz ]; then
 		time targetp -batch $BATCH -tmp $SCRATCH -format short -fasta $INDIR/$INFILE -org non-pl -prefix $OUTDIR/${NAME}
-		#pigz  $OUTDIR/${NAME}.tmhmm_results.tsv
+		pigz -f $OUTDIR/${NAME}_summary.targetp2
 	fi
 
 }

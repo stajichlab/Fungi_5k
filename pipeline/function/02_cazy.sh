@@ -24,9 +24,15 @@ mkdir -p $OUTDIR
 
 INFILE=$(ls -U $INDIR | sed -n ${N}p)
 NAME=$(basename $INFILE .proteins.fa)
+echo "To Run CAZY on Sample $NAME ($N): $INFILE"
 mkdir -p $OUTDIR/$NAME
-time dbcanlight search -i $INDIR/$INFILE -m cazyme -o $OUTDIR/$NAME -t $CPU
-time dbcanlight search -i $INDIR/$INFILE -m sub -o $OUTDIR/$NAME -t $CPU
-#time dbcanlight search -i $INDIR/$INFILE -m diamond -o $OUTDIR/$NAME -t $CPU 
-dbcanlight conclude $OUTDIR/$NAME
+if [ ! -f $OUTDIR/$NAME/overview.tsv.gz ]; then
+	time dbcanlight search -i $INDIR/$INFILE -m cazyme -o $OUTDIR/$NAME -t $CPU
+	time dbcanlight search -i $INDIR/$INFILE -m sub -o $OUTDIR/$NAME -t $CPU
+	#time dbcanlight search -i $INDIR/$INFILE -m diamond -o $OUTDIR/$NAME -t $CPU 
+	dbcanlight conclude $OUTDIR/$NAME
+    pigz -f $OUTDIR/$NAME/cazymes.tsv
+    pigz -f $OUTDIR/$NAME/substrates.tsv
+    pigz -f $OUTDIR/$NAME/overview.tsv
+fi
 
