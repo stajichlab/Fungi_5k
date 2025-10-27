@@ -10,7 +10,7 @@ library(cowplot)
 
 plotdir = "plots/exon_explore"
 dir.create(file.path(plotdir),showWarnings = FALSE)
-
+pdf(file.path(plotdir,"exon_explore.pdf"))
 # to use a database file already created by 
 con <- dbConnect(duckdb(), dbdir="functionalDB/function.duckdb", read_only = TRUE)
 

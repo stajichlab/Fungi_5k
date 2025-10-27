@@ -165,8 +165,8 @@ zoopag <- asmstat_res %>% filter(PHYLUM=="Zoopagomycota")
   countglen_p
   ggsave(file.path(statsplotdir,"genecount_gene_length_chytrid.pdf"),countglen_p,width=8,height=8)
 
-asco <- asmstat_res %>% filter(PHYLUM=="Ascomycota") %>% filter(SUBPHYLUM != "Ascomycotina" & 
-                                                                  SUBPHYLUM != "NA") 
+#asco <- asmstat_res %>% filter(PHYLUM=="Ascomycota") %>% filter(SUBPHYLUM != "Ascomycotina" &  SUBPHYLUM != "NA") 
+asco <- asmstat_res %>% filter(PHYLUM=="Ascomycota")
 for (subphylum in unique(asco$SUBPHYLUM))
 {
   subph <- asco %>% filter(SUBPHYLUM==subphylum)
@@ -185,6 +185,23 @@ for (subphylum in unique(asco$SUBPHYLUM))
   ggsave(file.path(statsplotdir,sprintf("genecount_gene_length_asco_%s.pdf",subphylum)),countglen_p,width=8,height=8)
 }
 
+
+# could make this a function + lapply
+for (subphylum in unique(basidio$SUBPHYLUM))
+{
+  subph <- basidio %>% filter(SUBPHYLUM==subphylum)
+
+  countglen_p <- ggplot(subph,aes(x=gene_count, y=mean_gene_length)) +
+  geom_point(aes(color=CLASS, fill=CLASS),size=1.5,alpha=0.7) + 
+    geom_smooth(method = "lm", se = FALSE,color="black",formula = y ~ x) + 
+    scale_colour_brewer(palette = "Dark2") +
+  ylab("Gene Length") +
+  xlab("Gene count (Mb)") + ggtitle(sprintf("%s: Gene Count vs Mean Gene length",subphylum)) +
+  theme_cowplot(12) + theme(legend.position="bottom") + scale_x_log10()
+
+  countglen_p
+  ggsave(file.path(statsplotdir,sprintf("genecount_gene_length_basidio_%s.pdf",subphylum)),countglen_p,width=8,height=8)
+}
 
 ## Codon Usage plots
 
@@ -221,7 +238,7 @@ aa_pcadat <- as.matrix(aafreq_wide %>% select(-c(PHYLUM,SUBPHYLUM,CLASS,GENUS,SP
 rownames(aa_pcadat) <- aafreq_wide$LOCUSTAG
 aa_pca_res <- prcomp(aa_pcadat, scale. = TRUE)
 
-aa_pcaplot<- autoplot(aa_pca_res, data = aafreq_wide, colour = 'PHYLUM', alpha=0.7,
+aa_pcaplot<- autoplot(aa_pca_res, data = aafreq_wide, shape='PHYLUM',colour = 'SUBPHYLUM', alpha=0.7,
                       label = FALSE, label.size = 3) + 
   theme_cowplot(12) + scale_colour_brewer(palette = "Set1") 
 aa_pcaplot
@@ -281,7 +298,7 @@ codon_pcafactors <- as_tibble(rownames_to_column(data.frame(codon_pca_res$x),var
 codon_pca_factors <- codonfreq_wide %>% left_join(codon_pcafactors,by="LOCUSTAG")
 fit <- lm(PC1~GC_PERCENT,codon_pca_factors%>%select(c(GC_PERCENT,PC1)))
 cor2 <- cor(codon_pca_factors$GC_PERCENT,codon_pca_factors$PC1)
-codon_GC_plot <- ggplot(codon_pca_factors,aes(x=GC_PERCENT,y=PC1)) + geom_point(aes(color=PHYLUM,fill=PHYLUM)) + 
+codon_GC_plot <- ggplot(codon_pca_factors,aes(x=GC_PERCENT,y=PC1)) + geom_point(aes(color=SUBPHYLUM,fill=SUBPHYLUM)) + 
   theme_cowplot(12) + scale_colour_brewer(palette = "Set1") + 
   geom_smooth(method = "lm", se = FALSE,color="black",formula = y ~ x) + 
   xlab("Genome GC %") +

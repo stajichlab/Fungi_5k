@@ -10,6 +10,7 @@ library(cowplot)
 
 plotdir = "plots/function_explore"
 dir.create(file.path(plotdir),showWarnings = FALSE)
+pdf(file.path(plotdir,"IDR_domain_misc.pdf"))
 
 # to use a database file already created by 
 con <- dbConnect(duckdb(), dbdir="functionalDB/function.duckdb", read_only = TRUE)

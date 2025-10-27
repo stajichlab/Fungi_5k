@@ -5,7 +5,8 @@ DBDIR=functionalDB
 DBNAME=function
 mkdir -p $DBDIR
 # build species table
-duckdb -c "CREATE TABLE IF NOT EXISTS species AS SELECT * FROM read_csv_auto('samples.csv')" $DBDIR/$DBNAME.duckdb
+duckdb -c "DROP TABLE species" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE TABLE species AS SELECT * FROM read_csv_auto('samples.csv')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_species_locustag ON species(LOCUSTAG)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_species_asm ON species(ASMID)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_species_speciesin ON species(SPECIESIN)" $DBDIR/$DBNAME.duckdb
@@ -108,10 +109,13 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_tmhmm_locus ON tmhmm(species_prefix)" 
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_tmhmm_protein_id ON tmhmm(protein_id)" $DBDIR/$DBNAME.duckdb
 
 # add pscan
-duckdb -c "CREATE TABLE IF NOT EXISTS prosite AS SELECT * FROM read_csv('bigquery/ps_scan.csv.gz')" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE INDEX IF NOT EXISTS idx_prosite_locus ON prosite(species_prefix)" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE INDEX IF NOT EXISTS idx_prosite_protein_ud ON prosite(protein_id)" $DBDIR/$DBNAME.duckdb
-
+if [ ! -f bigquery/ps_scan.csv.gz ]; then
+    echo "ps_scan.csv.gz not found, please run pipeline/function/11_process_prosite.sh first"
+else
+    duckdb -c "CREATE TABLE IF NOT EXISTS prosite AS SELECT * FROM read_csv('bigquery/ps_scan.csv.gz')" $DBDIR/$DBNAME.duckdb
+    duckdb -c "CREATE INDEX IF NOT EXISTS idx_prosite_locus ON prosite(species_prefix)" $DBDIR/$DBNAME.duckdb
+    duckdb -c "CREATE INDEX IF NOT EXISTS idx_prosite_protein_ud ON prosite(protein_id)" $DBDIR/$DBNAME.duckdb
+fi
 # add targetP
 duckdb -c "CREATE TABLE IF NOT EXISTS targetp AS SELECT * FROM read_csv('bigquery/targetP.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_targetp_species ON targetp(species_prefix)" $DBDIR/$DBNAME.duckdb
@@ -127,6 +131,10 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_idp_prefix ON idp(species_prefix)" $DB
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_idp_protein ON idp(protein_id,IDP_start)" $DBDIR/$DBNAME.duckdb
 
 # add orthogroups
-duckdb -c "CREATE TABLE IF NOT EXISTS mmseqs_orthogroup_clusters AS SELECT * FROM read_csv('bigquery/mmseqs_orthogroup_clusters.csv.gz')" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE INDEX IF NOT EXISTS idx_og ON mmseqs_orthogroup_clusters(orthogroup)" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE INDEX IF NOT EXISTS idx_tid ON mmseqs_orthogroup_clusters(transcript_id)" $DBDIR/$DBNAME.duckdb
+if [ ! -f bigquery/mmseqs_orthogroup_clusters.csv.gz ]; then
+    echo "mmseqs_orthogroup_clusters.csv.gz not found, please run pipeline/function/12_process_mmseqs_orthogroups.sh first"
+else
+    duckdb -c "CREATE TABLE IF NOT EXISTS mmseqs_orthogroup_clusters AS SELECT * FROM read_csv('bigquery/mmseqs_orthogroup_clusters.csv.gz')" $DBDIR/$DBNAME.duckdb
+    duckdb -c "CREATE INDEX IF NOT EXISTS idx_og ON mmseqs_orthogroup_clusters(orthogroup)" $DBDIR/$DBNAME.duckdb
+    duckdb -c "CREATE INDEX IF NOT EXISTS idx_tid ON mmseqs_orthogroup_clusters(transcript_id)" $DBDIR/$DBNAME.duckdb
+fi

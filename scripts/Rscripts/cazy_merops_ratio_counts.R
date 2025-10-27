@@ -7,7 +7,7 @@ library(dplyr)
 library(ggplot2)
 library(RColorBrewer)
 library(cowplot)
-
+pdf("plots/cazy_plots_misc.pdf")
 # to use a database file already created by 
 con <- dbConnect(duckdb(), dbdir="functionalDB/function.duckdb", read_only = TRUE)
 
@@ -185,30 +185,30 @@ FROM
 FROM signalp, gene_info, gene_proteins
 WHERE signalp.protein_id = gene_info.gene_id AND gene_proteins.gene_id = gene_info.gene_id AND
 signalp.probability > 0.60 AND signalp.protein_id not in (select cazy.protein_id FROM cazy where cazy.coverage > 0.50 AND cazy.evalue < 1e-5 AND cazy.HMM_id NOT LIKE 'GT%' AND cazy.HMM_id NOT LIKE 'fungi_doc%')
-GROUP BY LOCUSTAG) as secreted,
+GROUP BY gene_info.LOCUSTAG) as secreted,
 
 (SELECT gene_info.LOCUSTAG, COUNT(DISTINCT gene_info.gene_id) AS ssp_count
 FROM signalp, gene_info, gene_proteins
 WHERE signalp.protein_id = gene_info.gene_id AND gene_proteins.gene_id = gene_info.gene_id AND
 signalp.probability > 0.60 AND gene_proteins.length < 300 
 AND signalp.protein_id not in (select cazy.protein_id FROM cazy where cazy.coverage > 0.50 AND cazy.evalue < 1e-5 AND cazy.HMM_id NOT LIKE 'GT%' AND cazy.HMM_id NOT LIKE 'fungi_doc%')
-GROUP BY LOCUSTAG) as ssp,
+GROUP BY gene_info.LOCUSTAG) as ssp,
 
 (SELECT gene_info.LOCUSTAG, COUNT(DISTINCT gene_info.gene_id) AS de_count
 FROM cazy, gene_info, gene_proteins
 WHERE cazy.protein_id = gene_info.gene_id AND gene_proteins.gene_id = gene_info.gene_id AND
 cazy.coverage > 0.50 AND cazy.evalue < 1e-5 AND cazy.HMM_id NOT LIKE 'GT%' AND cazy.HMM_id NOT LIKE 'fungi_doc%'
-GROUP BY LOCUSTAG) as de,
+GROUP BY gene_info.LOCUSTAG) as de,
 
 (SELECT gene_info.LOCUSTAG, COUNT(DISTINCT gene_info.gene_id) AS merops_count
 FROM merops, gene_info, gene_proteins
 WHERE merops.protein_id = gene_info.gene_id AND gene_proteins.gene_id = gene_info.gene_id AND
 merops.aln_length / gene_proteins.length > 0.50 AND merops.evalue < 1e-10
-GROUP BY LOCUSTAG) as merops,
+GROUP BY gene_info.LOCUSTAG) as merops,
 
 (SELECT gene_info.LOCUSTAG, COUNT(DISTINCT gene_info.gene_id) AS gene_count
 FROM gene_info
-GROUP BY LOCUSTAG) as genes,
+GROUP BY gene_info.LOCUSTAG) as genes,
 
 funguild, species, asm_stats
 

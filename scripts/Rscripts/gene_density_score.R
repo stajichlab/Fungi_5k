@@ -17,7 +17,7 @@ plotdir = "plots"
 dir.create(file.path(plotdir),showWarnings = FALSE)
 statsplotdir = file.path(plotdir,"gene_density")
 dir.create(statsplotdir, showWarnings = FALSE)
-
+pdf(file.path(plotdir,"gene_density","density_misc.pdf"))
 #pdf(file.path(statsplotdir,"misc_plots.pdf"))
 # to use a database file already created by 
 con <- dbConnect(duckdb(), dbdir=file.path(DBDIR,DBNAME), read_only=TRUE)

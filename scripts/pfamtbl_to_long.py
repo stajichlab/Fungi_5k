@@ -68,8 +68,8 @@ def main():
         n = 0
         if args.indir:
             for file in os.listdir(args.indir):
-                #if args.debug:
-                #    print(f"Processing {file}")
+                if args.debug:
+                    print(f"Processing {file}")
                 fh = None
                 if file.endswith("." + args.extension):
                     filepath = os.path.join(args.indir, file)
