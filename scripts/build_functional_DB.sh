@@ -1,12 +1,11 @@
 #!/usr/bin/bash -l
-#SBATCH -p short -C ryzen --mem 64gb -c 64 -N 1 -n 1 --out logs/load_functionDB.log
+#SBATCH -p short --mem 64gb -c 64 -N 1 -n 1 --out logs/load_functionDB.log
 module load duckdb
 DBDIR=functionalDB
 DBNAME=function
 mkdir -p $DBDIR
 # build species table
-duckdb -c "DROP TABLE species" $DBDIR/$DBNAME.duckdb
-duckdb -c "CREATE TABLE species AS SELECT * FROM read_csv_auto('samples.csv')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE OR REPLACE TABLE species AS SELECT * FROM read_csv_auto('samples.csv')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_species_locustag ON species(LOCUSTAG)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_species_asm ON species(ASMID)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_species_speciesin ON species(SPECIESIN)" $DBDIR/$DBNAME.duckdb
@@ -21,7 +20,7 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_chrominfo_locustag ON chrom_info(LOCUS
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_chrominfo_locustag_chrom ON chrom_info(LOCUSTAG,chrom_name)" $DBDIR/$DBNAME.duckdb
 
 # build proteins
-duckdb -c "CREATE TABLE IF NOT EXISTS gene_proteins AS SELECT *, substring(protein_id,1,8) as locustag FROM read_csv_auto('bigquery/gene_proteins.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE TABLE IF NOT EXISTS gene_proteins AS SELECT *, string_split(protein_id,'_')[1] as locustag FROM read_csv_auto('bigquery/gene_proteins.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_proteins_locustag ON gene_proteins(locustag)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_proteins_gene_id ON gene_proteins(gene_id)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_gene_proteins_protein_id ON gene_proteins(protein_id)" $DBDIR/$DBNAME.duckdb
@@ -29,24 +28,24 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_proteins_tx_id ON gene_proteins(t
 
 
 # build exons
-duckdb -c "CREATE TABLE IF NOT EXISTS gene_exons AS SELECT *, substring(transcript_id,1,8) as locustag FROM read_csv_auto('bigquery/gene_exons.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE TABLE IF NOT EXISTS gene_exons AS SELECT *, string_split(exon_id,'_')[1] as locustag FROM read_csv_auto('bigquery/gene_exons.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_exon_locustag ON gene_exons(locustag)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_exons_transcript_id ON gene_exons(transcript_id)" $DBDIR/$DBNAME.duckdb
 
 # Add tRNA
-duckdb -c "CREATE TABLE IF NOT EXISTS gene_trna AS SELECT *, substring(gene_id,1,8) as locustag FROM read_csv_auto('bigquery/gene_trnas.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE TABLE IF NOT EXISTS gene_trna AS SELECT *, string_split(gene_id,'_')[1] as locustag FROM read_csv_auto('bigquery/gene_trnas.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_trna_locustag ON gene_trna(locustag)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_gene_trna_gene_id ON gene_trna(gene_id)" $DBDIR/$DBNAME.duckdb
 
 # Add transcripts
-duckdb -c "CREATE TABLE IF NOT EXISTS gene_transcripts AS SELECT *, substring(gene_id,1,8) as locustag FROM read_csv_auto('bigquery/gene_transcripts.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE TABLE IF NOT EXISTS gene_transcripts AS SELECT *, string_split(gene_id,'_')[1] as locustag FROM read_csv_auto('bigquery/gene_transcripts.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_tx_transcripts_locustag ON gene_transcripts(locustag)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_tx_transcripts_gene_id ON gene_transcripts(gene_id)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_gene_tx_transcript_id ON gene_transcripts(transcript_id)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_tx_chrom ON gene_transcripts(chrom)" $DBDIR/$DBNAME.duckdb
 
 # build gene info table
-duckdb -c "CREATE TABLE IF NOT EXISTS gene_info AS SELECT *, substring(gene_id,1,8) as locustag FROM read_csv_auto('bigquery/gene_info.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE TABLE IF NOT EXISTS gene_info AS SELECT * FROM read_csv_auto('bigquery/gene_info.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_info_locustag ON gene_info(locustag)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_gene_info_gene_id ON gene_info(gene_id)" $DBDIR/$DBNAME.duckdb
 
@@ -73,7 +72,7 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_cazy_HMM ON cazy(HMM_id)" $DBDIR/$DBNA
 
 
 # build Pfam domains table
-duckdb -c "CREATE TABLE IF NOT EXISTS pfam AS SELECT *, substring(protein_id,1,8) as species_prefix FROM read_csv_auto('bigquery/pfam.csv.gz')" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE TABLE IF NOT EXISTS pfam AS SELECT *, string_split(protein_id,'_')[1] as species_prefix FROM read_csv_auto('bigquery/pfam.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfam_locustag ON pfam(species_prefix)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfam_protein_id ON pfam(protein_id)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_pfam_pfam_id ON pfam(pfam_id)" $DBDIR/$DBNAME.duckdb
@@ -131,10 +130,19 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_idp_prefix ON idp(species_prefix)" $DB
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_idp_protein ON idp(protein_id,IDP_start)" $DBDIR/$DBNAME.duckdb
 
 # add orthogroups
-if [ ! -f bigquery/mmseqs_orthogroup_clusters.csv.gz ]; then
+if [[ ! -f bigquery/mmseqs_orthogroup_clusters.csv.gz ]]; then
     echo "mmseqs_orthogroup_clusters.csv.gz not found, please run pipeline/function/12_process_mmseqs_orthogroups.sh first"
 else
     duckdb -c "CREATE TABLE IF NOT EXISTS mmseqs_orthogroup_clusters AS SELECT * FROM read_csv('bigquery/mmseqs_orthogroup_clusters.csv.gz')" $DBDIR/$DBNAME.duckdb
     duckdb -c "CREATE INDEX IF NOT EXISTS idx_og ON mmseqs_orthogroup_clusters(orthogroup)" $DBDIR/$DBNAME.duckdb
     duckdb -c "CREATE INDEX IF NOT EXISTS idx_tid ON mmseqs_orthogroup_clusters(transcript_id)" $DBDIR/$DBNAME.duckdb
+    duckdb -c "CREATE TABLE mmseqs_orthogroup_cluster_count (
+      orthogroup VARCHAR PRIMARY KEY,
+      group_count BIGINT
+  );" $DBDIR/$DBNAME.duckdb
+  duckdb -c "INSERT INTO mmseqs_orthogroup_cluster_count
+  SELECT orthogroup, COUNT(*)
+  FROM mmseqs_orthogroup_clusters
+  GROUP BY orthogroup;" $DBDIR/$DBNAME.duckdb
+  duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_og_count ON mmseqs_orthogroup_cluster_count(orthogroup);" $DBDIR/$DBNAME.duckdb
 fi

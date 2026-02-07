@@ -38,21 +38,36 @@ GROUP BY orthogroup, group_count ORDER BY null_ratio DESC,group_count DESC"
 dbExecute(con,nulltable_sql)
 
 queryproteins_sql = 
-"SELECT gp.transcript_id, gp.peptide, cl.orthogroup, nc.group_count, nc.null_ratio
+"CREATE TEMPORARY TABLE mmseq_cluster_pfam_count_taxonomy AS
+SELECT gp.transcript_id, gp.peptide, cl.orthogroup, nc.group_count, 
+      nc.null_ratio as pfam_null_ratio, sp.SPECIES, sp.PHYLUM, sp.SUBPHYLUM, sp.CLASS, sp.ORDER, sp.FAMILY, 
 FROM mmseq_cluster_pfam_nullcount nc,
 mmseqs_orthogroup_clusters cl,
-gene_proteins gp
+gene_proteins gp,
+species as sp
+
 WHERE nc.null_ratio > 0.95 AND
 cl.transcript_id = gp.transcript_id AND
-nc.orthogroup = cl.orthogroup
+nc.orthogroup = cl.orthogroup AND
+sp.LOCUSTAG = gp.LOCUSTAG
 ORDER BY nc.group_count DESC
 "
+dbExecute(con,queryproteins_sql)
 
-cluster_info <- dbGetQuery(con,queryproteins_sql)
-cluster_info 
+taxo_sql = "
+SELECT DISTINCT orthogroup, mmseq_cluster_pfam_count_taxonomy.ORDER as tax_order, COUNT(*)
+  FROM mmseq_cluster_pfam_count_taxonomy
+GROUP BY orthogroup, tax_order
+"
+
+taxo_info <- dbGetQuery(con,taxo_sql)
+head(taxo_info)
+
+cluster_sql = "SELECT * FROM mmseq_cluster_pfam_count_taxonomy"
+cluster_info <- dbGetQuery(con,cluster_sql)
 
 # now let us dump out a protein set for each of the 
 write_csv(cluster_info,file="results/mmseqs_nopfam_genedump.csv")
 
-
 dbDisconnect(con, shutdown = TRUE)
+
