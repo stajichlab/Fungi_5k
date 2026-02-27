@@ -17,7 +17,7 @@ def connect_to_database(db_path):
     if not os.path.exists(db_path):
         raise FileNotFoundError(f"Database file not found: {db_path}")
     
-    return duckdb.connect(db_path)
+    return duckdb.connect(db_path,read_only=True)
 
 
 def build_query(pfam_field, pfam_value):
@@ -39,16 +39,16 @@ def build_query(pfam_field, pfam_value):
 def format_fasta_header(row):
     """Format the FASTA header according to specifications."""
     # Extract fields from the row
-    species_name = getattr(row, 'species_name', getattr(row, 'SPECIES', 'Unknown'))
-    transcript_id = getattr(row, 'protein_id', getattr(row, 'transcript_id', 'Unknown'))
-    phylum = getattr(row, 'phylum', getattr(row, 'PHYLUM', 'Unknown'))
-    subphylum = getattr(row, 'subphylum', getattr(row, 'SUBPHYLUM', 'Unknown'))
-    class_name = getattr(row, 'class', getattr(row, 'CLASS', 'Unknown'))
-    pfam_id = getattr(row, 'pfam_id', getattr(row, 'PFAM_ID', 'Unknown'))
-    evalue = getattr(row, 'evalue', getattr(row, 'EVALUE', 'Unknown'))
+    species_name = getattr(row, 'SPECIESIN', getattr(row, 'SPECIES', 'Unknown'))
+    transcript_id = getattr(row, 'transcript_id', 'Unknown')
+    phylum = getattr(row, 'PHYLUM', 'Unknown')
+    subphylum = getattr(row, 'SUBPHYLUM', 'Unknown')
+    class_name = getattr(row, 'CLASS', 'Unknown')
+    pfam_id = getattr(row, 'pfam_id', 'Unknown')
+    evalue = getattr(row, 'full_seq_e_value', 'Unknown')
     
     # Calculate sequence length
-    peptide = getattr(row, 'peptide', getattr(row, 'PEPTIDE', ''))
+    peptide = getattr(row, 'peptide', '')
     length = len(peptide) if peptide else 0
     
     header = f">{species_name}_{transcript_id} PHYLUM={phylum} SUBPHYLUM={subphylum} CLASS={class_name} PFAM_ID={pfam_id} PFAM_EVALUE={evalue} LENGTH={length}"

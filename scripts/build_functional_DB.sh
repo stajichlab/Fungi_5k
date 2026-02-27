@@ -44,6 +44,14 @@ duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_tx_transcripts_gene_id ON gene_tr
 duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_gene_tx_transcript_id ON gene_transcripts(transcript_id)" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_tx_chrom ON gene_transcripts(chrom)" $DBDIR/$DBNAME.duckdb
 
+# Add introns
+duckdb -c "CREATE TABLE IF NOT EXISTS gene_introns AS SELECT *, string_split(transcript_id,'_')[1] as locustag FROM read_csv_auto('bigquery/gene_introns.csv.gz')" $DBDIR/$DBNAME.duckdb
+
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_introns ON gene_introns(locustag)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE UNIQUE INDEX IF NOT EXISTS idx_gene_introns_intronid ON gene_introns(intron_id)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_introns_chrom ON gene_introns(chrom)" $DBDIR/$DBNAME.duckdb
+duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_introns_txid ON gene_introns(transcript_id)" $DBDIR/$DBNAME.duckdb
+
 # build gene info table
 duckdb -c "CREATE TABLE IF NOT EXISTS gene_info AS SELECT * FROM read_csv_auto('bigquery/gene_info.csv.gz')" $DBDIR/$DBNAME.duckdb
 duckdb -c "CREATE INDEX IF NOT EXISTS idx_gene_info_locustag ON gene_info(locustag)" $DBDIR/$DBNAME.duckdb
