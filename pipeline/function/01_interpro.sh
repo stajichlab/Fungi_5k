@@ -32,7 +32,7 @@ fi
 sampset=$(realpath sampleset.txt)
 MAX=$(wc -l $sampset | awk '{print $1}')
 START=$(perl -e "print 1 + (($N - 1) * $FILEBATCH)")
-END=$(perl -e "print ($N * $FILEBATCH) - 1")
+END=$(perl -e "print ($N * $FILEBATCH)")
 if [ $START -gt $MAX ]; then
 	echo "$START too big for $MAX"
 	exit

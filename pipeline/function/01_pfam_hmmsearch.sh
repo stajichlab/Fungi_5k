@@ -1,5 +1,5 @@
 #!/usr/bin/bash -l
-#SBATCH -p short -N 1 -n 1 -c 32 --mem 48gb --out logs/pfam_hmmsearch.%a.log -a 1-244
+#SBATCH -p short -N 1 -n 1 -c 32 --mem 48gb --out logs/pfam_hmmsearch.%a.log -a 1-243
 
 CPU=2
 if [ ! -z $SLURM_CPUS_ON_NODE ]; then
@@ -31,7 +31,7 @@ fi
 sampset=$(realpath sampleset.txt)
 MAX=$(wc -l $sampset | awk '{print $1}')
 START=$(perl -e "print 1 + (($N - 1) * $FILEBATCH)")
-END=$(perl -e "print ($N * $FILEBATCH) - 1")
+END=$(perl -e "print ($N * $FILEBATCH)")
 if [ $START -gt $MAX ]; then
 	echo "$START too big for $MAX"
 	exit

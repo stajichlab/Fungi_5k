@@ -1,5 +1,5 @@
 #!/usr/bin/bash -l
-#SBATCH -p short -C cascade -c 48 --mem 16gb -N 1 -n 1 --out logs/IDP_predict_cpu.%a.log -a 1
+#SBATCH -p short -C cascade -c 48 --mem 16gb -N 1 -n 1 --out logs/IDP_predict_cpu.%a.log -a 1-6
 module load aiupred
 
 CPU=1
@@ -31,7 +31,7 @@ fi
 sampset=$(realpath sampleset.txt)
 MAX=$(wc -l $sampset | awk '{print $1}')
 START=$(perl -e "print 1 + (($N - 1) * $FILEBATCH)")
-END=$(perl -e "print ($N * $FILEBATCH) - 1")
+END=$(perl -e "print ($N * $FILEBATCH)")
 if [ $START -gt $MAX ]; then
 	echo "$START too big for $MAX"
 	exit

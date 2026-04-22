@@ -2,6 +2,7 @@
 #SBATCH -N 1 -n 1 -c 8 --mem 2gb --time 2:00:00
 #SBATCH --job-name=MEROPS.domains
 #SBATCH --output=logs/merops.%a.log
+#SBATCH --array=1-59
 
 module load db-merops/124
 module load ncbi-blast/2.16.0+
@@ -39,7 +40,7 @@ if [ ! -s $sampset ]; then
 fi
 MAX=$(wc -l $sampset | awk '{print $1}')
 START=$(perl -e "print 1 + (($N - 1) * $FILEBATCH)")
-END=$(perl -e "print ($N * $FILEBATCH) - 1")
+END=$(perl -e "print ($N * $FILEBATCH)")
 if [ $START -gt $MAX ]; then
 	echo "$START too big for $MAX"
 	exit

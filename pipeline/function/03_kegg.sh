@@ -30,8 +30,6 @@ INFILE=$(sed -n ${N}p $sampset)
 PREFIX=$(basename $INFILE .fasta)
 INFILE=$(realpath $INDIR/$INFILE)
 
-mkdir -p $OUTDIR/$NAME
-
 OUT=$OUTDIR/${PREFIX}.kofam.tsv
 OUTRICH=$OUTDIR/${PREFIX}.kofam.txt
 KOLIST=$KOFAM_DB/ko_list

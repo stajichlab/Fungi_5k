@@ -1,5 +1,5 @@
 #!/usr/bin/bash -l
-#SBATCH -p gpu --gres=gpu:a100:1 -c 8 --mem 64gb -N 1 -n 1 --out logs/signalp.%a.log
+#SBATCH -p gpu --gres=gpu:a100:1 -c 8 --mem 64gb -N 1 -n 1 --out logs/signalp.%a.log -a 1-59
 module load signalp/6-gpu
 
 CPU=2
@@ -32,7 +32,7 @@ if [ ! -s $sampset ]; then
 fi
 MAX=$(wc -l $sampset | awk '{print $1}')
 START=$(perl -e "print 1 + (($N - 1) * $FILEBATCH)")
-END=$(perl -e "print ($N * $FILEBATCH) - 1")
+END=$(perl -e "print ($N * $FILEBATCH)")
 if [ $START -gt $MAX ]; then
 	echo "$START too big for $MAX"
 	exit
